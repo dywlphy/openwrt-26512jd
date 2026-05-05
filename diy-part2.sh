@@ -4,6 +4,10 @@
 # 自启动脚本 + 自动共享（完全使用 OpenWrt 官方源）
 # ==========================================
 
+# 🔴 物理移除冲突包
+rm -rf package/feeds/packages/odhcpd-ipv6only
+echo "✅ 冲突包已移除"
+
 # 创建自启动目录
 mkdir -p files/etc/init.d files/etc/rc.d
 
