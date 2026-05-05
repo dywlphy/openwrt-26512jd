@@ -114,6 +114,10 @@ rm -rf package/printing-packages
 git clone --depth=1 https://github.com/master-0123/openwrt-printing-packages package/printing-packages || \
 git clone --depth=1 https://github.com/master-0123/openwrt-printing-packages package/printing-packages
 sed -i 's/+libmesa//g' package/printing-packages/cairo/Makefile 2>/dev/null
-echo "✅ 打印包克隆完成"
+
+# 删除与官方 24.10 冲突的包，改用官方 feeds 自带版本
+rm -rf package/printing-packages/avahi
+rm -rf package/printing-packages/lcms2
+echo "✅ 打印包克隆完成（avahi 和 lcms2 将使用官方源）"
 
 echo "✅ diy-part2.sh 执行完成"
