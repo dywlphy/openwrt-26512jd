@@ -5,13 +5,13 @@
 # ==========================================
 
 # 🔴 物理移除冲突包（全覆盖）
-rm -rf package/network/services/dnsmasq
-rm -rf package/feeds/packages/odhcpd-ipv6only
-rm -rf package/network/services/odhcpd/files/odhcpd-ipv6only
-find package -path "*/odhcpd-ipv6only*" -exec rm -rf {} \; 2>/dev/null
-find feeds -path "*/odhcpd-ipv6only*" -exec rm -rf {} \; 2>/dev/null
-find feeds -path "*/odhcpd/ipv6only*" -exec rm -rf {} \; 2>/dev/null
-echo "✅ 冲突包已移除（dnsmasq + odhcpd-ipv6only）"
+#rm -rf package/network/services/dnsmasq
+#rm -rf package/feeds/packages/odhcpd-ipv6only
+#rm -rf package/network/services/odhcpd/files/odhcpd-ipv6only
+#find package -path "*/odhcpd-ipv6only*" -exec rm -rf {} \; 2>/dev/null
+#find feeds -path "*/odhcpd-ipv6only*" -exec rm -rf {} \; 2>/dev/null
+#find feeds -path "*/odhcpd/ipv6only*" -exec rm -rf {} \; 2>/dev/null
+#echo "✅ 冲突包已移除（dnsmasq + odhcpd-ipv6only）"
 
 # 实用小功能
 ./scripts/feeds install luci-app-autoreboot
