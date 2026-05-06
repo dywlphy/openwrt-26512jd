@@ -49,12 +49,34 @@ jobs:
         ./diy-part1.sh
         ./diy-part2.sh
         
-        # 调试：看看 scripts/config 目录下有什么
-        echo "========== scripts/config/ 目录内容 =========="
-        ls -la scripts/config/
-        echo "=============================================="
+        # 用 sed 强制写入 CUPS/ksmbd/SSR 的 CONFIG 行到 .config
+        # 先确保不会被已有的 # CONFIG_xxx is not set 覆盖
+        sed -i '/CONFIG_PACKAGE_cups/d' .config
+        sed -i '/CONFIG_PACKAGE_cups-filters/d' .config
+        sed -i '/CONFIG_PACKAGE_cups-bjnp/d' .config
+        sed -i '/CONFIG_PACKAGE_ksmbd-server/d' .config
+        sed -i '/CONFIG_PACKAGE_luci-app-ksmbd/d' .config
+        sed -i '/CONFIG_PACKAGE_luci-app-ssr-plus/d' .config
         
-        # 暂不强制勾选，直接 defconfig
+        # 追加 =y 行
+        cat >> .config << 'PACKAGES'
+        CONFIG_PACKAGE_cups=y
+        CONFIG_PACKAGE_cups-filters=y
+        CONFIG_PACKAGE_cups-bjnp=y
+        CONFIG_PACKAGE_ghostscript=y
+        CONFIG_PACKAGE_gutenprint=y
+        CONFIG_PACKAGE_foomatic-db=y
+        CONFIG_PACKAGE_foomatic-db-engine=y
+        CONFIG_PACKAGE_avahi-daemon=y
+        CONFIG_PACKAGE_dbus=y
+        CONFIG_PACKAGE_luci-app-cupsd=y
+        CONFIG_PACKAGE_ksmbd-server=y
+        CONFIG_PACKAGE_luci-app-ksmbd=y
+        CONFIG_PACKAGE_luci-app-ssr-plus=y
+        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Xray=y
+        PACKAGES
+        
+        # 然后 defconfig 让依赖链补齐
         make defconfig
 
     - name: Update feeds
