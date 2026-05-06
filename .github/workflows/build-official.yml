@@ -47,6 +47,7 @@ jobs:
         cd openwrt
         ./diy-part1.sh
         ./diy-part2.sh
+        make defconfig      # ← 加上这行！解析依赖，补全 .config
 
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
