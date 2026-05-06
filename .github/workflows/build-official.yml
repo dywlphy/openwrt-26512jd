@@ -57,12 +57,17 @@ jobs:
     - name: Remove conflicting packages
       run: |
         cd openwrt
-        rm -rf package/network/services/dnsmasq
-        rm -rf package/feeds/packages/odhcpd-ipv6only
-        rm -rf package/network/services/odhcpd/files/odhcpd-ipv6only
-        find package -path "*/odhcpd-ipv6only*" -exec rm -rf {} \; 2>/dev/null
-        find feeds -path "*/odhcpd-ipv6only*" -exec rm -rf {} \; 2>/dev/null
-        find feeds -path "*/odhcpd/ipv6only*" -exec rm -rf {} \; 2>/dev/null
+        # 1. 物理删目录
+        find . -maxdepth 4 -name "odhcpd-ipv6only" -type d -exec rm -rf {} \; 2>/dev/null || true
+        # 2. 删可能存在的链接/残留文件
+        find . -name "*odhcpd-ipv6only*" -delete 2>/dev/null || true
+        # 3. 从 feeds 索引里彻底剔除
+        for idx in feeds/*.index; do
+          [ -f "$idx" ] && sed -i '/odhcpd-ipv6only/d' "$idx" || true
+        done
+        # 4. 清理 tmp 缓存（防止 make 读到旧快照）
+        rm -rf tmp/
+        echo "✅ odhcpd-ipv6only 已彻底清除"
 
     - name: Download packages
       run: cd openwrt && make download -j8 || make download -j1 V=s
