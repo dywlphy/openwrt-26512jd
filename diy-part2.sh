@@ -107,4 +107,7 @@ EOF
 chmod +x files/etc/init.d/auto-share-init
 ln -sf ../init.d/auto-share-init files/etc/rc.d/S98auto-share-init
 
+# 强制覆盖安装 CUPS 核心包，以使用来自 small-package 的完整打印功能
+./scripts/feeds install -f -p smpackage cups cups-filters cups-bjnp ghostscript gutenprint foomatic-db foomatic-db-engine avahi-daemon dbus luci-app-cupsd
+
 echo "✅ diy-part2.sh 执行完成"
