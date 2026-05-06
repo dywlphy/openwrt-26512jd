@@ -39,6 +39,7 @@ jobs:
       run: |
         git clone https://github.com/openwrt/openwrt -b openwrt-24.10 openwrt
 
+    # 第一步：复制配置文件和脚本，添加 feed 源，但不执行 make defconfig
     - name: Load custom feeds and config
       run: |
         cp config.txt openwrt/.config
@@ -48,43 +49,15 @@ jobs:
         cd openwrt
         ./diy-part1.sh
         ./diy-part2.sh
-        
-        # 用 sed 强制写入 CUPS/ksmbd/SSR 的 CONFIG 行到 .config
-        # 先确保不会被已有的 # CONFIG_xxx is not set 覆盖
-        sed -i '/CONFIG_PACKAGE_cups/d' .config
-        sed -i '/CONFIG_PACKAGE_cups-filters/d' .config
-        sed -i '/CONFIG_PACKAGE_cups-bjnp/d' .config
-        sed -i '/CONFIG_PACKAGE_ksmbd-server/d' .config
-        sed -i '/CONFIG_PACKAGE_luci-app-ksmbd/d' .config
-        sed -i '/CONFIG_PACKAGE_luci-app-ssr-plus/d' .config
-        
-        # 追加 =y 行
-        cat >> .config << 'PACKAGES'
-        CONFIG_PACKAGE_cups=y
-        CONFIG_PACKAGE_cups-filters=y
-        CONFIG_PACKAGE_cups-bjnp=y
-        CONFIG_PACKAGE_ghostscript=y
-        CONFIG_PACKAGE_gutenprint=y
-        CONFIG_PACKAGE_foomatic-db=y
-        CONFIG_PACKAGE_foomatic-db-engine=y
-        CONFIG_PACKAGE_avahi-daemon=y
-        CONFIG_PACKAGE_dbus=y
-        CONFIG_PACKAGE_luci-app-cupsd=y
-        CONFIG_PACKAGE_ksmbd-server=y
-        CONFIG_PACKAGE_luci-app-ksmbd=y
-        CONFIG_PACKAGE_luci-app-ssr-plus=y
-        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Xray=y
-        PACKAGES
-        
-        # 然后 defconfig 让依赖链补齐
-        make defconfig
 
+    # 第二步：更新并安装所有 feed 源
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
 
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
+    # 第三步：删除冲突包
     - name: Remove conflicting packages
       run: |
         cd openwrt
@@ -101,6 +74,12 @@ jobs:
         
         rm -rf tmp/
         echo "✅ 冲突包已清除"
+
+    # 第四步：在所有 feed 都就绪后，执行 defconfig
+    - name: Run make defconfig
+      run: |
+        cd openwrt
+        make defconfig
 
     # ═══════════════════════════════════════
     # 第一道检查：依赖链是否能完整解析
