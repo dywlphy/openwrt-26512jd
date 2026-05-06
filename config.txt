@@ -73,6 +73,7 @@ CONFIG_PACKAGE_ghostscript=y
 # ksmbd 局域网共享
 CONFIG_PACKAGE_luci-app-ksmbd=y
 CONFIG_PACKAGE_ksmbd-server=y
+CONFIG_PACKAGE_kmod-fs-ksmbd=y
 
 # SSR-Plus（由 helloworld 源提供）
 CONFIG_PACKAGE_luci-app-ssr-plus=y
