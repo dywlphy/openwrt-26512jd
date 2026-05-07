@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================
-# feeds 配置：官方默认源 + kenzok8 全家桶 + helloworld + immortalwrt
+# feeds 配置：官方默认源 + kenzok8 全家桶 + helloworld + immortalwrt + openwrt-cups
 # ==========================================
 
 # 追加 kenzok8 的 openwrt-packages 源（大量实用包）
@@ -18,4 +18,7 @@ echo "src-git helloworld https://github.com/fw876/helloworld" >> feeds.conf.defa
 # 追加 immortalwrt 源（完整 CUPS 打印包）
 echo "src-git immortalwrt https://github.com/immortalwrt/packages.git;openwrt-24.10" >> feeds.conf.default
 
-echo "✅ 已添加 kenzo、small、smpackage、helloworld、immortalwrt 源"
+# 追加 openwrt-cups 源（ghostscript, gutenprint, foomatic）
+echo "src-git cups https://github.com/op4packages/openwrt-cups.git" >> feeds.conf.default
+
+echo "✅ 已添加 kenzo、small、smpackage、helloworld、immortalwrt、cups 源"
