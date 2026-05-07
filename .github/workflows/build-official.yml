@@ -115,6 +115,14 @@ jobs:
         enable_pkg "vlmcsd"
         enable_pkg "luci-app-vlmcsd"
         enable_pkg "curl"
+
+        # ---------- 👇👇👇 就是这三行 ----------
+        # 强制禁用 mosdns（Go 1.23 编译环境不兼容 Go 1.25 的 mosdns）
+        sed -i 's/^CONFIG_PACKAGE_mosdns=y/# CONFIG_PACKAGE_mosdns is not set/' .config
+        sed -i 's/^CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_MosDNS=y/# CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_MosDNS is not set/' .config
+        echo "  已禁用 mosdns（Go 版本不兼容）"
+        # ---------- 👆👆👆 就是这三行 ----------
+
         echo "==========================="
         
         echo ""
