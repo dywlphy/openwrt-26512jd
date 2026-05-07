@@ -110,15 +110,21 @@ chmod +x files/etc/init.d/auto-share-init
 ln -sf ../init.d/auto-share-init files/etc/rc.d/S98auto-share-init
 
 # ==========================================
-# CUPS 相关包安装（双源分工）
+# CUPS 相关包安装
 # ==========================================
 
-# 第一步：从官方 packages 源安装 CUPS 扩展包
+# 从官方 packages 源安装 CUPS 扩展包
+# 使用完整路径避免被第三方 feeds 干扰
 echo "从官方 packages 源安装 CUPS 扩展包..."
-./scripts/feeds install -f -p packages cups-bjnp ghostscript gutenprint foomatic-db foomatic-db-engine avahi-daemon 2>/dev/null
+./scripts/feeds install feeds/packages/net/cups-bjnp 2>/dev/null
+./scripts/feeds install feeds/packages/utils/ghostscript 2>/dev/null
+./scripts/feeds install feeds/packages/utils/gutenprint 2>/dev/null
+./scripts/feeds install feeds/packages/utils/foomatic-db 2>/dev/null
+./scripts/feeds install feeds/packages/utils/foomatic-db-engine 2>/dev/null
+./scripts/feeds install feeds/packages/libs/avahi 2>/dev/null
 echo "  ✅ 官方扩展包安装完成"
 
-# 第二步：从 smpackage 源安装 CUPS 核心包
+# 从 smpackage 源安装 CUPS 核心包
 echo "从 smpackage 源安装 CUPS 核心包..."
 ./scripts/feeds install -f -p smpackage cups cups-filters dbus luci-app-cupsd 2>/dev/null
 echo "  ✅ smpackage 核心包安装完成"
