@@ -97,18 +97,18 @@ jobs:
         done
         rm -rf tmp/
         echo "✅ 冲突包已清除"
-                # 手动获取缺失的 CUPS 打印驱动包（从 OpenWrt 23.05 源）
+        # 手动获取 ghostscript、gutenprint、foomatic-db（从 OpenWrt 23.05 分支）
         echo "手动获取打印驱动包..."
-        git clone --depth=1 --filter=blob:none https://github.com/openwrt/packages.git /tmp/packages-tmp 2>/dev/null
-        for pkg in utils/ghostscript utils/gutenprint utils/foomatic-db utils/foomatic-db-engine libs/avahi; do
-          if [ -d "/tmp/packages-tmp/$pkg" ]; then
-            cp -r "/tmp/packages-tmp/$pkg" "package/$(basename $pkg)"
+        git clone --depth=1 --branch=openwrt-23.05 https://github.com/openwrt/packages.git /tmp/packages-23 2>/dev/null
+        for pkg in utils/ghostscript utils/gutenprint utils/foomatic-db utils/foomatic-db-engine; do
+          if [ -d "/tmp/packages-23/$pkg" ]; then
+            cp -r "/tmp/packages-23/$pkg" "package/$(basename $pkg)"
             echo "  ✅ 已复制: $pkg"
           else
             echo "  ❌ 未找到: $pkg"
           fi
         done
-        rm -rf /tmp/packages-tmp
+        rm -rf /tmp/packages-23
 
     - name: Diagnose CUPS packages location
       run: |
