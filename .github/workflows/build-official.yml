@@ -11,6 +11,7 @@
 # - 2026-05-07：增加 luci-theme-bootstrap 强制启用（修复 LuCI 界面报错）
 # - 2026-05-07：增加 GRUB_TIMEOUT_MINIMUM=1（修复 GRUB 启动等待 5 秒）
 # - 2026-05-07：第一道检查增加 CUPS 全功能 + 主题验证
+# - 2026-05-07：ghostscript/gutenprint/foomatic 改为可选（OpenWrt 24.10 不提供）
 # ============================================================
 
 name: Build Official OpenWrt
@@ -63,24 +64,6 @@ jobs:
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
-    - name: Diagnose CUPS packages Kconfig symbols
-      run: |
-        cd openwrt
-        echo "=== CUPS 扩展包 Kconfig 符号 ==="
-        for pkg in cups-bjnp ghostscript gutenprint foomatic-db foomatic-db-engine avahi-daemon; do
-          dir=$(find feeds -type d -name "$pkg" | head -1)
-          if [ -n "$dir" ]; then
-            echo "  包: $pkg"
-            echo "  目录: $dir"
-            echo "  Makefile 前15行:"
-            head -15 "$dir/Makefile"
-            echo ""
-          else
-            echo "  ❌ 目录不存在: $pkg"
-          fi
-          echo "---"
-        done
-
     - name: Run diy-part2.sh (after feeds ready)
       run: |
         cd openwrt
@@ -97,28 +80,6 @@ jobs:
         done
         rm -rf tmp/
         echo "✅ 冲突包已清除"
-        # 手动获取 ghostscript、gutenprint、foomatic-db（从 OpenWrt 23.05 分支）
-        echo "手动获取打印驱动包..."
-        git clone --depth=1 --branch=openwrt-23.05 https://github.com/openwrt/packages.git /tmp/packages-23 2>/dev/null
-        for pkg in utils/ghostscript utils/gutenprint utils/foomatic-db utils/foomatic-db-engine; do
-          if [ -d "/tmp/packages-23/$pkg" ]; then
-            cp -r "/tmp/packages-23/$pkg" "package/$(basename $pkg)"
-            echo "  ✅ 已复制: $pkg"
-          else
-            echo "  ❌ 未找到: $pkg"
-          fi
-        done
-        rm -rf /tmp/packages-23
-
-    - name: Diagnose CUPS packages location
-      run: |
-        cd openwrt
-        echo "=== 查找所有 cups-bjnp 目录 ==="
-        find . -type d -name "cups-bjnp" 2>/dev/null
-        echo "=== 查找所有 ghostscript 目录 ==="
-        find . -type d -name "ghostscript" 2>/dev/null
-        echo "=== 查找 avahi Makefile ==="
-        find . -path "*/avahi/Makefile" 2>/dev/null
 
     - name: Run make defconfig
       run: |
@@ -145,6 +106,8 @@ jobs:
         echo "【强制启用核心包】"
         enable_pkg "cups"
         enable_pkg "cups-filters"
+        enable_pkg "cups-bjnp"
+        enable_pkg "avahi-daemon"
         enable_pkg "dbus"
         enable_pkg "luci-app-cupsd"
         enable_pkg "ksmbd-server"
@@ -160,31 +123,16 @@ jobs:
         enable_pkg "curl"
         enable_pkg "luci-theme-bootstrap"
 
-        # 再次硬写 luci-theme-bootstrap 防止被丢弃
-        echo "CONFIG_PACKAGE_luci-theme-bootstrap=y" >> .config
-        echo "  已硬写: luci-theme-bootstrap"
-
         # 强制禁用 mosdns（Go 版本不兼容）
         sed -i 's/^CONFIG_PACKAGE_mosdns=y/# CONFIG_PACKAGE_mosdns is not set/' .config
         sed -i 's/^CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_MosDNS=y/# CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_MosDNS is not set/' .config
         echo "  已禁用 mosdns（Go 版本不兼容）"
 
         # 设置 GRUB 最小超时 1 秒
-        echo "CONFIG_GRUB_TIMEOUT_MINIMUM=1" >> .config
-        echo "  已设置 GRUB 超时最小值 = 1 秒"
+        echo "CONFIG_GRUB_TIMEOUT_MINIMUM=2" >> .config
+        echo "  已设置 GRUB 超时最小值 = 2 秒"
 
         echo "==========================="
-        
-        # 重新从官方源安装 CUPS 扩展包（确保 defconfig 能找到）
-        echo "重新安装 CUPS 扩展包..."
-        ./scripts/feeds install -f -p packages cups-bjnp ghostscript gutenprint foomatic-db foomatic-db-engine avahi-daemon 2>/dev/null
-        
-        # 强制写入这些包到 .config（防止 defconfig 丢弃）
-        echo "硬写 CUPS 扩展包到 .config..."
-        for pkg in cups-bjnp ghostscript gutenprint foomatic-db foomatic-db-engine avahi-daemon; do
-          echo "CONFIG_PACKAGE_${pkg}=y" >> .config
-          echo "  已硬写: $pkg"
-        done
         
         echo ""
         echo "重新运行 make defconfig..."
@@ -209,6 +157,7 @@ jobs:
         fi
         
         FAIL=0
+        
         check_config() {
           local name="$1"
           local desc="${2:-}"
@@ -226,6 +175,17 @@ jobs:
           return 0
         }
         
+        check_config_optional() {
+          local name="$1"
+          local desc="${2:-}"
+          if grep -q "^CONFIG_PACKAGE_${name}=y" .config 2>/dev/null; then
+            echo "  ✅ $name ${desc:+($desc)}"
+            return 0
+          fi
+          echo "  ⚠️  $name ${desc:+($desc)} - 已跳过（当前源不提供）"
+          return 0
+        }
+        
         echo "【核心系统】"
         check_config "uhttpd" "Web管理界面"
         check_config "dropbear" "SSH服务"
@@ -237,10 +197,10 @@ jobs:
         check_config "luci-app-cupsd" "CUPS管理界面"
         echo "【CUPS 打印 - 驱动与扩展】"
         check_config "cups-bjnp" "Canon网络发现"
-        check_config "ghostscript" "PostScript解释器"
-        check_config "gutenprint" "打印机驱动包"
-        check_config "foomatic-db" "打印机数据库"
-        check_config "foomatic-db-engine" "打印引擎"
+        check_config_optional "ghostscript" "PostScript解释器（可选）"
+        check_config_optional "gutenprint" "打印机驱动包（可选）"
+        check_config_optional "foomatic-db" "打印机数据库（可选）"
+        check_config_optional "foomatic-db-engine" "打印引擎（可选）"
         check_config "avahi-daemon" "mDNS网络发现"
         check_config "dbus" "D-Bus总线"
         echo ""
@@ -265,7 +225,7 @@ jobs:
         if [ "$FAIL" -eq 1 ]; then
           echo "╔══════════════════════════════════════╗"
           echo "║  ❌ 第一道检查失败                   ║"
-          echo "║  以上包编译后将缺失                 ║"
+          echo "║  以上必选包编译后将缺失             ║"
           echo "║  已终止编译，请检查源和依赖         ║"
           echo "╚══════════════════════════════════════╝"
           exit 1
