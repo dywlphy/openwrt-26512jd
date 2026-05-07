@@ -105,12 +105,6 @@ jobs:
         echo "【强制启用核心包】"
         enable_pkg "cups"
         enable_pkg "cups-filters"
-        enable_pkg "cups-bjnp"
-        enable_pkg "ghostscript"
-        enable_pkg "gutenprint"
-        enable_pkg "foomatic-db"
-        enable_pkg "foomatic-db-engine"
-        enable_pkg "avahi-daemon"
         enable_pkg "dbus"
         enable_pkg "luci-app-cupsd"
         enable_pkg "ksmbd-server"
@@ -140,6 +134,17 @@ jobs:
         echo "  已设置 GRUB 超时最小值 = 1 秒"
 
         echo "==========================="
+        
+        # 重新从官方源安装 CUPS 扩展包（确保 defconfig 能找到）
+        echo "重新安装 CUPS 扩展包..."
+        ./scripts/feeds install -f -p packages cups-bjnp ghostscript gutenprint foomatic-db foomatic-db-engine avahi-daemon 2>/dev/null
+        
+        # 强制写入这些包到 .config（防止 defconfig 丢弃）
+        echo "硬写 CUPS 扩展包到 .config..."
+        for pkg in cups-bjnp ghostscript gutenprint foomatic-db foomatic-db-engine avahi-daemon; do
+          echo "CONFIG_PACKAGE_${pkg}=y" >> .config
+          echo "  已硬写: $pkg"
+        done
         
         echo ""
         echo "重新运行 make defconfig..."
