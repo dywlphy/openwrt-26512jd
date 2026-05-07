@@ -1,24 +1,35 @@
 #!/bin/bash
-# ==========================================
-# feeds 配置：官方默认源 + kenzok8 全家桶 + helloworld + immortalwrt + openwrt-cups
-# ==========================================
+# ============================================================
+# diy-part1.sh - Feed 源配置
+# 在 feeds update 之前执行，配置自定义软件源
+# ============================================================
 
-# 追加 kenzok8 的 openwrt-packages 源（大量实用包）
-echo "src-git kenzo https://github.com/kenzok8/openwrt-packages.git" >> feeds.conf.default
+echo "=========================================="
+echo "【配置自定义 Feed 源】"
+echo "=========================================="
 
-# 追加 kenzok8 的 small 源（基础依赖包、科学上网插件）
-echo "src-git small https://github.com/kenzok8/small.git" >> feeds.conf.default
+# 备份原始 feeds.conf.default
+cp feeds.conf.default feeds.conf.default.bak
 
-# 追加 kenzok8 的 small-package 源（CUPS 等完整包）
-echo "src-git smpackage https://github.com/kenzok8/small-package" >> feeds.conf.default
+# 清空并写入自定义 Feed 源
+# 注意：printing 必须在 smpackage 之前，确保 cups 包优先使用 printing 源的版本
+cat > feeds.conf.default <<'EOF'
+src-git printing https://github.com/belphegor-belbel/openwrt-printing-packages.git
+src-git kenzo https://github.com/kenzok8/openwrt-packages.git
+src-git small https://github.com/kenzok8/small.git
+src-git smpackage https://github.com/kenzok8/small-package
+src-git helloworld https://github.com/fw876/helloworld
+src-git immortalwrt https://github.com/immortalwrt/packages.git;openwrt-24.10
+EOF
 
-# 追加 helloworld 源（SSR-Plus 的原始来源）
-echo "src-git helloworld https://github.com/fw876/helloworld" >> feeds.conf.default
-
-# 追加 immortalwrt 源（完整 CUPS 打印包）
-echo "src-git immortalwrt https://github.com/immortalwrt/packages.git;openwrt-24.10" >> feeds.conf.default
-
-# 追加 openwrt-cups 源（ghostscript, gutenprint, foomatic）
-echo "src-git cups https://github.com/op4packages/openwrt-cups.git" >> feeds.conf.default
-
-echo "✅ 已添加 kenzo、small、smpackage、helloworld、immortalwrt、cups 源"
+echo ""
+echo "Feed 源配置完成："
+echo "  1. printing    - CUPS 打印包源（优先级最高）"
+echo "  2. kenzo       - kenzok8 扩展包"
+echo "  3. small       - kenzok8 小型包"
+echo "  4. smpackage   - kenzok8 小型包（含 luci-app-cupsd）"
+echo "  5. helloworld  - SSR-Plus 代理"
+echo "  6. immortalwrt - ImmortalWrt 兼容包"
+echo ""
+echo "注意：printing 在 smpackage 之前，确保 cups 包使用 printing 源版本"
+echo "=========================================="
