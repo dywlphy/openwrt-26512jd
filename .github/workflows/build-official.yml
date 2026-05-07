@@ -129,8 +129,8 @@ jobs:
         echo "  已禁用 mosdns（Go 版本不兼容）"
 
         # 设置 GRUB 最小超时 1 秒
-        echo "CONFIG_GRUB_TIMEOUT_MINIMUM=2" >> .config
-        echo "  已设置 GRUB 超时最小值 = 2 秒"
+        echo "CONFIG_GRUB_TIMEOUT_MINIMUM=0" >> .config
+        echo "  已设置 GRUB 超时最小值 = 0 秒"
 
         echo "==========================="
         
