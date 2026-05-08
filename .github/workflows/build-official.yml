@@ -64,7 +64,7 @@ jobs:
           [ -f "$idx" ] && sed -i '/onionshare-cli/d' "$idx" || true
         done
         rm -rf tmp/
-        echo "[OK] 冲突包已清除"
+        echo "✅ 冲突包已清除"
     - name: Run make defconfig
       run: |
         cd openwrt
