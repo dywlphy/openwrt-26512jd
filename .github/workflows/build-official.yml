@@ -1,7 +1,8 @@
 # ============================================================
 # OpenWrt 官方 24.10 稳定版编译
-# 核心：CUPS + SSR-Plus + ksmbd + 中文界面
+# 核心：CUPS + SSR-Plus + ksmbd + 中文界面.github/workflows/build-official.yml
 # ============================================================
+
 name: Build Official OpenWrt
 
 on:
@@ -19,6 +20,7 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@main
+
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -30,6 +32,7 @@ jobs:
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone Asia/Shanghai
+
     - name: Clone OpenWrt 24.10
       run: |
         git clone https://github.com/openwrt/openwrt -b openwrt-24.10 openwrt
@@ -52,8 +55,10 @@ jobs:
     - name: Remove conflicting packages
       run: |
         cd openwrt
+        # 移除 immortalwrt feed 中有问题的 cups（libz 依赖缺失）
         rm -rf feeds/immortalwrt/utils/cups 2>/dev/null || true
         rm -rf feeds/immortalwrt/utils/libcups 2>/dev/null || true
+        # 原有的冲突包清理
         rm -rf feeds/smpackage/{base-files,dnsmasq,firewall*,fullconenat,libnftnl,nftables,ppp,opkg,ucl,upx,vsftpd*,miniupnpd-iptables,wireless-regdb} 2>/dev/null || true
         rm -rf feeds/packages/net/onionshare-cli 2>/dev/null || true
         find . -name "onionshare-cli" -type d -exec rm -rf {} \; 2>/dev/null || true
@@ -66,7 +71,8 @@ jobs:
       run: |
         cd openwrt
         make defconfig
-    - name: Print feeds conf
+
+    - name: Debug Print feeds conf
       run: |
         cd openwrt
         echo ""
@@ -75,7 +81,7 @@ jobs:
         echo "╚══════════════════════════════════════╝"
         cat feeds.conf 2>/dev/null || echo "feeds.conf 不存在"
         echo ""
-    - name: Print Chinese packages in config
+    - name: Debug Print Chinese packages in config
       run: |
         cd openwrt
         echo ""
@@ -121,6 +127,7 @@ jobs:
         enable_pkg "ucode-mod-ubus"
         enable_pkg "ucode-mod-uci"
         enable_pkg "luci-theme-bootstrap"
+        
         echo ""
         echo "【强制启用中文语言包】"
         enable_pkg "luci-i18n-base-zh-cn"
@@ -136,6 +143,7 @@ jobs:
         enable_pkg "luci-i18n-ttyd-zh-cn"
         enable_pkg "luci-i18n-ssr-plus-zh-cn"
         enable_pkg "luci-i18n-cupsd-zh-cn"
+        
         echo ""
         echo "【强制启用核心功能包】"
         enable_pkg "cups"
@@ -155,6 +163,7 @@ jobs:
         enable_pkg "vlmcsd"
         enable_pkg "luci-app-vlmcsd"
         enable_pkg "curl"
+        
         enable_pkg "ghostscript"
         enable_pkg "gutenprint"
         enable_pkg "foomatic-db"
@@ -164,7 +173,8 @@ jobs:
         sed -i 's/CONFIG_GRUB_TIMEOUT=.*/CONFIG_GRUB_TIMEOUT=0/' .config
         echo "CONFIG_GRUB_TIMEOUT=0" >> .config
         echo "==========================="
-    - name: Print all Chinese packages in config
+        # make defconfig
+    - name: Debug Print all Chinese packages in config
       run: |
         cd openwrt
         echo ""
@@ -177,12 +187,15 @@ jobs:
     - name: Check Chinese packages in config
       run: |
         cd openwrt
+        
         echo ""
         echo "╔══════════════════════════════════════╗"
         echo "║  🔍 检查中文包是否写入 .config  ║"
         echo "╚══════════════════════════════════════╝"
         echo ""
+        
         FAIL=0
+        
         check_i18n_config() {
           local pkg="$1"
           if grep -q "^CONFIG_PACKAGE_${pkg}=y" .config 2>/dev/null; then
@@ -194,10 +207,13 @@ jobs:
             return 1
           fi
         }
+        
         check_i18n_config "luci-i18n-base-zh-cn"
         check_i18n_config "luci-i18n-firewall-zh-cn"
         check_i18n_config "luci-i18n-opkg-zh-cn"
+        
         echo ""
+        
         if [ "$FAIL" -eq 1 ]; then
           echo "╔══════════════════════════════════════╗"
           echo "║  ❌ 中文包未写入 .config        ║"
@@ -214,15 +230,19 @@ jobs:
     - name: Verify package requirements
       run: |
         cd openwrt
+        
         echo ""
         echo "╔══════════════════════════════════════╗"
         echo "║  🔍 依赖链完整性检查            ║"
         echo "╚══════════════════════════════════════╝"
         echo ""
+        
         TOTAL=$(grep -c "^CONFIG_PACKAGE_.*=y" .config)
         echo "  已解析的包总数: $TOTAL"
         echo ""
+        
         FAIL=0
+        
         check_config() {
           local name="$1"
           local desc="${2:-}"
@@ -239,6 +259,7 @@ jobs:
           fi
           return 0
         }
+        
         echo "【LuCI 核心】"
         check_config "luci-base"
         check_config "luci-mod-admin-full"
@@ -263,6 +284,7 @@ jobs:
         check_config "luci-app-ddns"
         check_config "luci-app-wol"
         echo ""
+        
         if [ "$FAIL" -eq 1 ]; then
           echo "╔══════════════════════════════════════╗"
           echo "║  ❌ 检查失败                      ║"
