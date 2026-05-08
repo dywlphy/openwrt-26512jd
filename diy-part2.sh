@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================
-# diy-part2.sh - 自启动脚本 + 自动共享 + CUPS 配置
+# diy-part2.sh - 自启动脚本 + 自动共享（基础版）
 # ==========================================
 
 # ----- 修复 GRUB 超时为 0 秒 -----
@@ -20,8 +20,6 @@ cat > files/etc/init.d/custom-autostart << 'EOF'
 #!/bin/sh /etc/rc.common
 START=99
 start() {
-    [ -x /etc/init.d/cupsd ] && /etc/init.d/cupsd enable && /etc/init.d/cupsd start
-    [ -x /etc/init.d/avahi-daemon ] && /etc/init.d/avahi-daemon enable && /etc/init.d/avahi-daemon start
     [ -x /etc/init.d/ksmbd ] && /etc/init.d/ksmbd enable && /etc/init.d/ksmbd start
     [ -x /etc/init.d/miniupnpd ] && /etc/init.d/miniupnpd enable && /etc/init.d/miniupnpd start
     [ -x /etc/init.d/ddns ] && /etc/init.d/ddns enable && /etc/init.d/ddns start
