@@ -61,6 +61,26 @@ jobs:
       run: |
         cd openwrt
         make defconfig
+
+    - name: Debug: Print feeds.conf
+      run: |
+        cd openwrt
+        echo ""
+        echo "╔══════════════════════════════════════╗"
+        echo "║  📄 feeds.conf 内容              ║"
+        echo "╚══════════════════════════════════════╝"
+        cat feeds.conf 2>/dev/null || echo "feeds.conf 不存在"
+        echo ""
+
+    - name: Debug: Print Chinese packages in .config
+      run: |
+        cd openwrt
+        echo ""
+        echo "╔══════════════════════════════════════╗"
+        echo "║  📄 .config 中的中文包配置        ║"
+        echo "╚══════════════════════════════════════╝"
+        grep -E "luci-i18n.*zh-cn" .config 2>/dev/null || echo "无中文包配置"
+        echo ""
     - name: Force enable key packages
       run: |
         cd openwrt
@@ -147,6 +167,16 @@ jobs:
         echo "CONFIG_GRUB_TIMEOUT=0" >> .config
         echo "==========================="
         # make defconfig
+    - name: Debug: Print all Chinese packages in .config
+      run: |
+        cd openwrt
+        echo ""
+        echo "╔══════════════════════════════════════╗"
+        echo "║  📋 .config 中所有中文包          ║"
+        echo "╚══════════════════════════════════════╝"
+        echo ""
+        grep "^CONFIG_PACKAGE_luci-i18n" .config | sed 's/^/  /' || echo "  (无中文包配置)"
+        echo ""
     - name: Check Chinese packages in .config
       run: |
         cd openwrt
