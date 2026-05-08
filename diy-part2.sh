@@ -1,7 +1,9 @@
 #!/bin/bash
 # ==========================================
-# diy-part2.sh - 自启动脚本 + 自动共享（基础版）
+# diy-part2.sh - 自启动脚本 + 自动共享 + 中文设置
 # ==========================================
+
+cd openwrt  # 关键：进入 openwrt 目录
 
 # ----- 修复 GRUB 超时为 0 秒 -----
 echo "===== 修复 GRUB 超时为 0 秒 ====="
@@ -13,7 +15,7 @@ for cfg in target/linux/x86/image/grub-efi.cfg target/linux/x86/image/grub-pc.cf
 done
 
 # ----- 创建自启动目录 -----
-mkdir -p files/etc/init.d files/etc/rc.d
+mkdir -p files/etc/init.d files/etc/rc.d files/etc/uci-defaults
 
 # ----- 服务自启动脚本 -----
 cat > files/etc/init.d/custom-autostart << 'EOF'
@@ -104,7 +106,6 @@ ln -sf ../init.d/auto-share-init files/etc/rc.d/S98auto-share-init
 
 # ----- 设置默认语言为中文 -----
 echo "===== 设置默认语言为中文 ====="
-mkdir -p files/etc/uci-defaults
 cat > files/etc/uci-defaults/99-lang-zh-cn <<'UCI_EOF'
 #!/bin/sh
 uci set luci.main.lang='zh_cn'
