@@ -1,32 +1,27 @@
 # ============================================================
 # OpenWrt 官方 24.10 稳定版编译
-# 核心：稳定网络 + SSR + ksmbd + CUPS + 中文界面
+# 核心：CUPS + SSR-Plus + ksmbd + 中文界面
 # 
 # 修复记录：
-# - 2026-05-08：修复中文语言包问题（改用 CONFIG_LUCI_LANG_zh_Hans）
-# - 2026-05-08：修复打印驱动包问题（移除不存在的包）
-# - 2026-05-08：优化依赖检查逻辑（可选包不再阻止编译）
+# - 2026-05-07：添加完整 LuCI 核心依赖（修复界面报错）
+# - 2026-05-07：修复 GRUB 超时配置
+# - 2026-05-07：添加 openwrt-cups 源（ghostscript, gutenprint, foomatic）
+# - 2026-05-08：添加中文语言包强制启用和检查（解决界面无中文问题）
 # ============================================================
-
 name: Build Official OpenWrt
-
 on:
   workflow_dispatch:
-
 env:
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
-
 jobs:
   build:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
-
     steps:
     - name: Checkout
       uses: actions/checkout@main
-
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -38,11 +33,9 @@ jobs:
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone Asia/Shanghai
-
     - name: Clone OpenWrt 24.10
       run: |
         git clone https://github.com/openwrt/openwrt -b openwrt-24.10 openwrt
-
     - name: Load custom feeds and config
       run: |
         [ -f config.txt ] && cp config.txt openwrt/.config
@@ -51,18 +44,14 @@ jobs:
         chmod +x openwrt/diy-part1.sh openwrt/diy-part2.sh 2>/dev/null || true
         cd openwrt
         ./diy-part1.sh
-
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
-
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
-
     - name: Run diy-part2.sh (after feeds ready)
       run: |
         cd openwrt
         ./diy-part2.sh
-
     - name: Remove conflicting packages
       run: |
         cd openwrt
@@ -74,12 +63,10 @@ jobs:
         done
         rm -rf tmp/
         echo "✅ 冲突包已清除"
-
     - name: Run make defconfig
       run: |
         cd openwrt
         make defconfig
-
     - name: Force enable key packages
       run: |
         cd openwrt
@@ -97,6 +84,9 @@ jobs:
           fi
         }
         
+        # ==========================================
+        # 关键修复：LuCI 核心依赖（修复界面报错）
+        # ==========================================
         echo "【强制启用 LuCI 核心依赖】"
         enable_pkg "luci-base"
         enable_pkg "luci-mod-admin-full"
@@ -121,6 +111,22 @@ jobs:
         enable_pkg "luci-theme-bootstrap"
         
         echo ""
+        echo "【强制启用中文语言包】"
+        enable_pkg "luci-i18n-base-zh-cn"
+        enable_pkg "luci-i18n-opkg-zh-cn"
+        enable_pkg "luci-i18n-firewall-zh-cn"
+        enable_pkg "luci-i18n-attendedsysupgrade-zh-cn"
+        enable_pkg "luci-i18n-wireguard-zh-cn"
+        enable_pkg "luci-i18n-upnp-zh-cn"
+        enable_pkg "luci-i18n-ddns-zh-cn"
+        enable_pkg "luci-i18n-sqm-zh-cn"
+        enable_pkg "luci-i18n-wol-zh-cn"
+        enable_pkg "luci-i18n-nft-qos-zh-cn"
+        enable_pkg "luci-i18n-ttyd-zh-cn"
+        enable_pkg "luci-i18n-ssr-plus-zh-cn"
+        enable_pkg "luci-i18n-cupsd-zh-cn"
+        
+        echo ""
         echo "【强制启用核心功能包】"
         enable_pkg "cups"
         enable_pkg "cups-filters"
@@ -139,38 +145,32 @@ jobs:
         enable_pkg "vlmcsd"
         enable_pkg "luci-app-vlmcsd"
         enable_pkg "curl"
-        enable_pkg "luci-app-nft-qos"
-        enable_pkg "luci-app-statistics"
-        enable_pkg "luci-app-adblock"
-        enable_pkg "luci-app-autoreboot"
-        enable_pkg "luci-app-watchcat"
-        enable_pkg "luci-app-commands"
-        enable_pkg "luci-app-nlbwmon"
-        enable_pkg "luci-app-diskman"
-
-        # 禁用 mosdns（Go 版本不兼容）
+        
+        # 从 openwrt-cups 源启用打印驱动包
+        enable_pkg "ghostscript"
+        enable_pkg "gutenprint"
+        enable_pkg "foomatic-db"
+        enable_pkg "foomatic-db-engine"
+        # 强制禁用 mosdns（Go 版本不兼容）
         sed -i 's/^CONFIG_PACKAGE_mosdns=y/# CONFIG_PACKAGE_mosdns is not set/' .config
         sed -i 's/^CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_MosDNS=y/# CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_MosDNS is not set/' .config
         echo "  已禁用 mosdns（Go 版本不兼容）"
-
         # 设置 GRUB 超时 0 秒
         sed -i 's/CONFIG_GRUB_TIMEOUT=.*/CONFIG_GRUB_TIMEOUT=0/' .config
         echo "CONFIG_GRUB_TIMEOUT=0" >> .config
         echo "  已设置 GRUB 超时 = 0 秒"
-
         echo "==========================="
         
         echo ""
         echo "重新运行 make defconfig..."
         make defconfig
-
     - name: Verify package requirements
       run: |
         cd openwrt
         
         echo ""
         echo "╔══════════════════════════════════════╗"
-        echo "║  🔍 依赖链完整性检查                  ║"
+        echo "║  🔍 第一道检查：依赖链完整性         ║"
         echo "╚══════════════════════════════════════╝"
         echo ""
         
@@ -201,12 +201,12 @@ jobs:
             echo "  ❌ $name ${desc:+($desc)} - 编译将缺失此功能！"
             FAIL=1
           else
-            echo "  ⚠️  $name ${desc:+($desc)} - 已跳过（可选包）"
+            echo "  ⚠️  $name ${desc:+($desc)} - 已跳过（当前源不提供）"
           fi
           return 0
         }
         
-        echo "【LuCI 核心】"
+        echo "【LuCI 核心 - 修复界面报错】"
         check_config "luci-base" "LuCI基础"
         check_config "luci-mod-admin-full" "管理界面"
         check_config "rpcd" "RPC守护进程"
@@ -220,54 +220,59 @@ jobs:
         check_config "ucode-mod-uci" "ucode uci模块"
         check_config "luci-theme-bootstrap" "默认主题"
         echo ""
-        echo "【CUPS 打印】"
+        echo "【中文语言包 - 解决界面无中文问题】"
+        check_config "luci-i18n-base-zh-cn" "基础中文"
+        check_config "luci-i18n-firewall-zh-cn" "防火墙中文"
+        check_config "luci-i18n-opkg-zh-cn" "软件包中文"
+        check_config "luci-i18n-ssr-plus-zh-cn" "SSR中文"
+        check_config "luci-i18n-cupsd-zh-cn" "CUPS中文"
+        echo ""
+        echo "【CUPS 打印 - 核心】"
         check_config "cups" "CUPS核心"
         check_config "cups-filters" "打印过滤器"
         check_config "luci-app-cupsd" "CUPS管理界面"
-        check_config "cups-bjnp" "Canon网络发现" "optional"
-        check_config "avahi-dbus-daemon" "mDNS" "optional"
+        echo "【CUPS 打印 - 驱动与扩展】"
+        check_config "cups-bjnp" "Canon网络发现"
+        check_config "ghostscript" "PostScript解释器" "optional"
+        check_config "gutenprint" "打印机驱动包" "optional"
+        check_config "foomatic-db" "打印机数据库" "optional"
+        check_config "foomatic-db-engine" "打印引擎" "optional"
+        check_config "avahi-dbus-daemon" "mDNS网络发现" "optional"
         check_config "dbus" "D-Bus总线"
         echo ""
         echo "【文件共享】"
-        check_config "ksmbd-server" "SMB共享"
-        check_config "luci-app-ksmbd" "ksmbd界面"
+        check_config "ksmbd-server" "SMB共享服务"
+        check_config "luci-app-ksmbd" "ksmbd管理界面"
         echo ""
-        echo "【网络工具】"
-        check_config "luci-app-ssr-plus" "SSR-Plus" "optional"
+        echo "【科学上网】"
+        check_config "luci-app-ssr-plus" "SSR-Plus"
+        echo ""
+        echo "【实用工具】"
         check_config "luci-app-sqm" "SQM QoS"
         check_config "luci-app-upnp" "UPnP"
         check_config "luci-app-ddns" "动态DNS"
         check_config "luci-app-wol" "网络唤醒"
         check_config "wireguard-tools" "WireGuard"
         check_config "luci-proto-wireguard" "WireGuard界面"
-        check_config "vlmcsd" "KMS服务" "optional"
-        check_config "luci-app-vlmcsd" "KMS界面" "optional"
-        check_config "luci-app-nft-qos" "上网时间控制"
-        check_config "luci-app-statistics" "性能监控"
-        check_config "luci-app-adblock" "广告过滤"
-        check_config "luci-app-autoreboot" "定时重启"
-        check_config "luci-app-watchcat" "断网重启"
-        check_config "luci-app-commands" "命令执行"
-        check_config "luci-app-nlbwmon" "流量统计"
-        check_config "luci-app-diskman" "磁盘管理"
+        check_config "vlmcsd" "KMS激活服务"
+        check_config "luci-app-vlmcsd" "KMS管理界面"
         echo ""
         
         if [ "$FAIL" -eq 1 ]; then
           echo "╔══════════════════════════════════════╗"
-          echo "║  ❌ 检查失败                         ║"
-          echo "║  核心功能包缺失，请检查配置          ║"
+          echo "║  ❌ 第一道检查失败                   ║"
+          echo "║  以上必选包编译后将缺失             ║"
+          echo "║  已终止编译，请检查源和依赖         ║"
           echo "╚══════════════════════════════════════╝"
           exit 1
         else
           echo "╔══════════════════════════════════════╗"
-          echo "║  ✅ 检查通过                         ║"
-          echo "║  核心功能就绪: $TOTAL 包             ║"
+          echo "║  ✅ 第一道检查通过                   ║"
+          echo "║  所有核心功能已就绪: $TOTAL 包       ║"
           echo "╚══════════════════════════════════════╝"
         fi
-
     - name: Download packages
       run: cd openwrt && make download -j8 || make download -j1 V=s
-
     - name: Compile firmware
       id: compile
       run: |
@@ -278,7 +283,6 @@ jobs:
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
-
     - name: Organize files
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
@@ -287,21 +291,18 @@ jobs:
         rm -rf packages
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
-
     - name: Upload firmware to Artifacts
       uses: actions/upload-artifact@main
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
         name: OpenWrt_Official_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
-
     - name: Generate release tag
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
         echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
         echo "status=success" >> $GITHUB_OUTPUT
-
     - name: Upload firmware to Release
       uses: softprops/action-gh-release@master
       if: steps.tag.outputs.status == 'success' && !cancelled()
@@ -309,7 +310,6 @@ jobs:
         token: ${{ secrets.RELEASES_TOKEN }}
         tag_name: ${{ steps.tag.outputs.release_tag }}
         files: ${{ env.FIRMWARE }}/*
-
     - name: Remove old Releases
       uses: dev-drprasad/delete-older-releases@master
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
