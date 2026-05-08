@@ -164,7 +164,7 @@ jobs:
         sed -i 's/CONFIG_GRUB_TIMEOUT=.*/CONFIG_GRUB_TIMEOUT=0/' .config
         echo "CONFIG_GRUB_TIMEOUT=0" >> .config
         echo "==========================="
-    - name: Debug: Print all Chinese packages in .config
+    - name: Print all Chinese packages in config
       run: |
         cd openwrt
         echo ""
@@ -174,7 +174,7 @@ jobs:
         echo ""
         grep "^CONFIG_PACKAGE_luci-i18n" .config | sed 's/^/  /' || echo "  (无中文包配置)"
         echo ""
-    - name: Check Chinese packages in .config
+    - name: Check Chinese packages in config
       run: |
         cd openwrt
         echo ""
