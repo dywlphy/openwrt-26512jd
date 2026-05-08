@@ -52,11 +52,9 @@ jobs:                   # ← 只有一个 jobs
     - name: Remove conflicting packages
       run: |
         cd openwrt
-        
         # 移除 immortalwrt feed 中有问题的 cups（libz 依赖缺失）
         rm -rf feeds/immortalwrt/utils/cups 2>/dev/null || true
         rm -rf feeds/immortalwrt/utils/libcups 2>/dev/null || true
-        
         # 原有的冲突包清理
         rm -rf feeds/smpackage/{base-files,dnsmasq,firewall*,fullconenat,libnftnl,nftables,ppp,opkg,ucl,upx,vsftpd*,miniupnpd-iptables,wireless-regdb} 2>/dev/null || true
         rm -rf feeds/packages/net/onionshare-cli 2>/dev/null || true
@@ -70,7 +68,6 @@ jobs:                   # ← 只有一个 jobs
       run: |
         cd openwrt
         make defconfig
-
     - name: Debug: Print feeds.conf
       run: |
         cd openwrt
@@ -80,7 +77,6 @@ jobs:                   # ← 只有一个 jobs
         echo "╚══════════════════════════════════════╝"
         cat feeds.conf 2>/dev/null || echo "feeds.conf 不存在"
         echo ""
-
     - name: Debug: Print Chinese packages in .config
       run: |
         cd openwrt
