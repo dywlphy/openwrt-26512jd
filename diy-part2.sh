@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================
-# diy-part2.sh - 自启动脚本 + 自动共享 + CUPS 包安装 + GRUB修复
+# diy-part2.sh - 自启动脚本 + 自动共享 + CUPS 包安装 + 中文包安装 + GRUB修复
 # ==========================================
 # ----- 修复 GRUB 超时为 0 秒 -----
 echo "===== 修复 GRUB 超时为 0 秒 ====="
@@ -100,22 +100,33 @@ EOF
 chmod +x files/etc/init.d/auto-share-init
 ln -sf ../init.d/auto-share-init files/etc/rc.d/S98auto-share-init
 # ==========================================
+# 安装中文语言包（关键修复）
+# ==========================================
+echo "===== 安装中文语言包 ====="
+./scripts/feeds install luci-i18n-base-zh-cn && echo "  ✅ luci-i18n-base-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-base-zh-cn 安装失败"
+./scripts/feeds install luci-i18n-firewall-zh-cn && echo "  ✅ luci-i18n-firewall-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-firewall-zh-cn 安装失败"
+./scripts/feeds install luci-i18n-opkg-zh-cn && echo "  ✅ luci-i18n-opkg-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-opkg-zh-cn 安装失败"
+./scripts/feeds install luci-i18n-upnp-zh-cn && echo "  ✅ luci-i18n-upnp-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-upnp-zh-cn 安装失败"
+./scripts/feeds install luci-i18n-ddns-zh-cn && echo "  ✅ luci-i18n-ddns-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-ddns-zh-cn 安装失败"
+./scripts/feeds install luci-i18n-sqm-zh-cn && echo "  ✅ luci-i18n-sqm-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-sqm-zh-cn 安装失败"
+./scripts/feeds install luci-i18n-wol-zh-cn && echo "  ✅ luci-i18n-wol-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-wol-zh-cn 安装失败"
+./scripts/feeds install luci-i18n-nft-qos-zh-cn && echo "  ✅ luci-i18n-nft-qos-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-nft-qos-zh-cn 安装失败"
+./scripts/feeds install luci-i18n-attendedsysupgrade-zh-cn && echo "  ✅ luci-i18n-attendedsysupgrade-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-attendedsysupgrade-zh-cn 安装失败"
+./scripts/feeds install luci-i18n-wireguard-zh-cn && echo "  ✅ luci-i18n-wireguard-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-wireguard-zh-cn 安装失败"
+./scripts/feeds install luci-i18n-ttyd-zh-cn && echo "  ✅ luci-i18n-ttyd-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-ttyd-zh-cn 安装失败"
+# ==========================================
 # CUPS 相关包安装
 # ==========================================
 echo "===== 安装 CUPS 相关包 ====="
-# 从 openwrt-cups 源安装 ghostscript, gutenprint, foomatic
 echo "从 openwrt-cups 源安装打印驱动包..."
 ./scripts/feeds install -f -p cups ghostscript 2>/dev/null && echo "  ✅ ghostscript 安装成功" || echo "  ⚠️ ghostscript 安装失败"
 ./scripts/feeds install -f -p cups gutenprint 2>/dev/null && echo "  ✅ gutenprint 安装成功" || echo "  ⚠️ gutenprint 安装失败"
 ./scripts/feeds install -f -p cups foomatic-db 2>/dev/null && echo "  ✅ foomatic-db 安装成功" || echo "  ⚠️ foomatic-db 安装失败"
 ./scripts/feeds install -f -p cups foomatic-db-engine 2>/dev/null && echo "  ✅ foomatic-db-engine 安装成功" || echo "  ⚠️ foomatic-db-engine 安装失败"
-# 从 immortalwrt 源安装其他包
 echo "从 immortalwrt 源安装扩展包..."
 ./scripts/feeds install -f -p immortalwrt cups-bjnp 2>/dev/null && echo "  ✅ cups-bjnp 安装成功" || echo "  ⚠️ cups-bjnp 安装失败"
-# 从 smpackage 源安装 CUPS 核心包
 echo "从 smpackage 源安装 CUPS 核心包..."
 ./scripts/feeds install -f -p smpackage cups cups-filters dbus luci-app-cupsd 2>/dev/null && echo "  ✅ CUPS 核心包安装成功" || echo "  ⚠️ CUPS 核心包安装失败"
-# avahi-daemon 从官方源安装（使用 avahi-dbus-daemon）
 echo "从官方源安装 avahi..."
 ./scripts/feeds install avahi-dbus-daemon 2>/dev/null && echo "  ✅ avahi-dbus-daemon 安装成功" || {
     ./scripts/feeds install avahi-nodbus-daemon 2>/dev/null && echo "  ✅ avahi-nodbus-daemon 安装成功" || echo "  ⚠️ avahi 安装失败"
