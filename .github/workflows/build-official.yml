@@ -71,6 +71,7 @@ jobs:
       run: |
         cd openwrt
         make defconfig
+
     - name: Debug: Print feeds.conf
       run: |
         cd openwrt
