@@ -170,6 +170,11 @@ echo "从官方源安装 avahi..."
     ./scripts/feeds install avahi-nodbus-daemon 2>/dev/null && echo "  ✅ avahi-nodbus-daemon 安装成功" || echo "  ⚠️ avahi 安装失败"
 }
 
+# 从 brlaser 源安装 Brother 驱动
+echo "===== 安装 Brother 打印机驱动 ====="
+./scripts/feeds update brlaser
+./scripts/feeds install brlaser
+echo "  ✅ brlaser 安装完成"
 # +++ 新增：打印机驱动安装（保持原代码后添加）+++
 echo "===== 安装打印机驱动 ====="
 ./scripts/feeds install -f -p cups brlaser 2>/dev/null && echo "  ✅ brlaser 安装成功" || echo "  ⚠️ brlaser 安装失败"
