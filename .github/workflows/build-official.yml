@@ -140,6 +140,8 @@ jobs:
         enable_pkg "luci-i18n-ttyd-zh-cn"
         enable_pkg "luci-i18n-ssr-plus-zh-cn"
         enable_pkg "luci-i18n-cupsd-zh-cn"
+        enable_pkg "brlaser"
+        enable_pkg "hplip-ppds"
         
         echo ""
         echo "【强制启用核心功能包】"
