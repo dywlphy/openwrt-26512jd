@@ -149,7 +149,9 @@ jobs:
         enable_pkg "libcups"
         enable_pkg "libpng"
         enable_pkg "libjpeg"
-        enable_pkg "libtiff"
+        # enable_pkg "libtiff"
+        enable_pkg "libstdcpp"          # ← 新增
+        enable_pkg "libusb-1.0"         # ← 新增
         enable_pkg "kmod-usb-printer"
         echo "【强制启用核心功能包】"
         enable_pkg "cups"
