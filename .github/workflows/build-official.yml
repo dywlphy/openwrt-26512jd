@@ -150,6 +150,7 @@ jobs:
         enable_pkg "libpng"
         enable_pkg "libjpeg"
         enable_pkg "libtiff"
+        enable_pkg "kmod-usb-printer"
         echo "【强制启用核心功能包】"
         enable_pkg "cups"
         enable_pkg "cups-filters"
