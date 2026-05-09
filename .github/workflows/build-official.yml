@@ -144,6 +144,12 @@ jobs:
         enable_pkg "hplip-ppds"
         
         echo ""
+        echo "【强制启用基础依赖】"
+        enable_pkg "zlib"
+        enable_pkg "libcups"
+        enable_pkg "libpng"
+        enable_pkg "libjpeg"
+        enable_pkg "libtiff"
         echo "【强制启用核心功能包】"
         enable_pkg "cups"
         enable_pkg "cups-filters"
