@@ -19,9 +19,10 @@ echo "src-git small https://github.com/kenzok8/small.git" >> feeds.conf
 echo "src-git smpackage https://github.com/kenzok8/small-package" >> feeds.conf
 echo "src-git helloworld https://github.com/fw876/helloworld" >> feeds.conf
 echo "src-git cups https://github.com/op4packages/openwrt-cups.git" >> feeds.conf
+echo "src-git brlaser https://github.com/pdewacht/brlaser.git" >> feeds.conf   # ← 只加了这一行
 
 echo "✅ feeds.conf 配置完成"
 echo "已添加："
 echo "  - 官方: packages, luci (优先级高)"
-echo "  - 第三方: immortalwrt, kenzo, small, smpackage, helloworld, cups"
+echo "  - 第三方: immortalwrt, kenzo, small, smpackage, helloworld, cups, brlaser"
 cat feeds.conf
