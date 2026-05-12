@@ -1,211 +1,147 @@
 #!/bin/bash
-# ==========================================
-# diy-part2.sh -  自启动脚本 + 自动共享 + CUPS + GRUB修复
-# OpenWrt 24 专用 - 方案三（精确拉取）
-# ==========================================
+#
+# Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
+#
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
+# https://github.com/P3TERX/Actions-OpenWrt
+# File: diy-part2.sh
+# Description: OpenWrt DIY script part 2 (After Update feeds)
+#
 
-# ==========================================
-# 1. 修复 GRUB 超时为 0 秒
-# ==========================================
-echo "===== 修复 GRUB 超时为 0 秒 ====="
-for cfg in target/linux/x86/image/grub-efi.cfg target/linux/x86/image/grub-pc.cfg target/linux/x86/image/grub-iso.cfg; do
-    if [ -f "$cfg" ]; then
-        sed -i 's/^set timeout=.*/set timeout=0/' "$cfg"
-        echo "  ✅ $(basename $cfg): timeout=0"
-    fi
-done
+# Modify default IP
+#sed -i 's/192.168.1.1/192.168.50.5/g' package/base-files/files/bin/config_generate
 
-# ==========================================
-# 2. 修复 Makefile 问题（使用 find 动态查找）
-# ==========================================
-echo "===== 修复 Makefile 问题 ====="
+# ============================================
+# OpenWrt 24.10 Official Stable Build
+# diy-part2.sh - 更新feeds后的配置和自定义
+# ============================================
 
-# 修复 tiff
-TIFF_MK=$(find feeds -path "*/tiff/Makefile" 2>/dev/null | head -1)
-if [ -n "$TIFF_MK" ] && [ -f "$TIFF_MK" ]; then
-    sed -i 's/--enable-webp/--disable-webp/g' "$TIFF_MK"
-    echo "  ✅ tiff Makefile 已修复: $TIFF_MK"
+echo "=========================================="
+echo "OpenWrt 24.10 Official Stable Build"
+echo "diy-part2.sh - 更新feeds后的配置"
+echo "=========================================="
+
+# ============================================
+# 1. 设置默认主机名
+# ============================================
+echo "[1/5] 设置默认主机名..."
+sed -i 's/ImmortalWrt/OpenWrt/g' package/base-files/files/bin/config_generate 2>/dev/null || true
+sed -i 's/OpenWrt/OpenWrt-24.10/g' package/base-files/files/bin/config_generate 2>/dev/null || true
+
+# ============================================
+# 2. 设置默认时区为上海
+# ============================================
+echo "[2/5] 设置默认时区..."
+sed -i "s/'UTC'/'CST-8'/g" package/base-files/files/bin/config_generate
+sed -i "/'CST-8'/a \\t\tset system.@system[-1].zonename='Asia/Shanghai'" package/base-files/files/bin/config_generate
+
+# ============================================
+# 3. 设置默认主题
+# ============================================
+echo "[3/5] 设置默认主题为Material..."
+# 修改默认主题为material
+sed -i 's/luci-theme-bootstrap/luci-theme-material/g' feeds/luci/collections/luci/Makefile 2>/dev/null || true
+sed -i 's/luci-theme-bootstrap/luci-theme-material/g' package/feeds/luci/luci/Makefile 2>/dev/null || true
+
+# ============================================
+# 4. 修改默认IP地址 (可选)
+# ============================================
+echo "[4/5] 配置网络设置..."
+# 如需修改默认IP，取消下面一行的注释并修改IP
+# sed -i 's/192.168.1.1/192.168.1.1/g' package/base-files/files/bin/config_generate
+
+# ============================================
+# 5. 添加自定义banner
+# ============================================
+echo "[5/5] 添加自定义banner..."
+cat > package/base-files/files/etc/banner << 'EOF'
+  _______                     ________        __
+ |       |.-----.-----.-----.|  |  |  |.----.|  |_
+ |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
+ |_______||   __|_____|__|__||________||__|  |____|
+          |__| W I R E L E S S   F R E E D O M
+ -----------------------------------------------------
+ OpenWrt 24.10 Official Stable Build
+ -----------------------------------------------------
+EOF
+
+# ============================================
+# 6. 修复ksmbd配置 (如果需要)
+# ============================================
+echo "[额外] 检查ksmbd配置..."
+# 确保ksmbd配置文件正确
+if [ -f package/network/services/ksmbd/files/ksmbd.config.example ]; then
+    cp package/network/services/ksmbd/files/ksmbd.config.example package/network/services/ksmbd/files/ksmbd.config 2>/dev/null || true
 fi
 
-# 修复 ghostscript
-GS_MK=$(find feeds -path "*/ghostscript/Makefile" 2>/dev/null | head -1)
-if [ -n "$GS_MK" ] && [ -f "$GS_MK" ]; then
-    sed -i 's/--enable-cups/--with-install-cups/g' "$GS_MK"
-    echo "  ✅ ghostscript Makefile 已修复: $GS_MK"
+# ============================================
+# 7. 确保中文语言包正确
+# ============================================
+echo "[额外] 检查中文语言包..."
+# 检查中文语言包是否存在
+if [ -d feeds/luci/applications/luci-app-autoreboot/po ]; then
+    echo "  - luci-app-autoreboot 中文支持: OK"
+fi
+if [ -d feeds/luci/applications/luci-app-adblock/po ]; then
+    echo "  - luci-app-adblock 中文支持: OK"
+fi
+if [ -d feeds/luci/applications/luci-app-wol/po ]; then
+    echo "  - luci-app-wol 中文支持: OK"
+fi
+if [ -d feeds/luci/applications/luci-app-nlbwmon/po ]; then
+    echo "  - luci-app-nlbwmon 中文支持: OK"
+fi
+if [ -d feeds/luci/applications/luci-app-commands/po ]; then
+    echo "  - luci-app-commands 中文支持: OK"
+fi
+if [ -d feeds/luci/applications/luci-app-watchcat/po ]; then
+    echo "  - luci-app-watchcat 中文支持: OK"
+fi
+if [ -d feeds/luci/applications/luci-app-ksmbd/po ]; then
+    echo "  - luci-app-ksmbd 中文支持: OK"
+fi
+if [ -d feeds/luci/applications/luci-app-ddns/po ]; then
+    echo "  - luci-app-ddns 中文支持: OK"
+fi
+if [ -d feeds/luci/applications/luci-app-upnp/po ]; then
+    echo "  - luci-app-upnp 中文支持: OK"
+fi
+if [ -d feeds/luci/applications/luci-app-accesscontrol/po ]; then
+    echo "  - luci-app-accesscontrol 中文支持: OK"
+fi
+if [ -d feeds/luci/applications/luci-app-statistics/po ]; then
+    echo "  - luci-app-statistics 中文支持: OK"
 fi
 
-# 修复 cups Makefile（从 smpackage 源）
-CUPS_MK=$(find feeds/smpackage -path "*/cups/Makefile" 2>/dev/null | head -1)
-if [ -n "$CUPS_MK" ] && [ -f "$CUPS_MK" ]; then
-    sed -i 's/DEPENDS:=/DEPENDS:=+libusb-1.0 +libstdcpp /' "$CUPS_MK"
-    echo "  ✅ cups Makefile 已修复: $CUPS_MK"
-fi
-
-# ==========================================
-# 3. 创建目录和文件
-# ==========================================
-echo "===== 创建目录和文件 ====="
-mkdir -p files/etc/init.d files/etc/rc.d files/etc/avahi/services
-
-# AirPrint 服务文件
-cat > files/etc/avahi/services/cups.service << 'EOF'
-<?xml version="1.0" standalone='no'?>
-<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-<service-group>
-  <name replace-wildcards="yes">%h - CUPS</name>
-  <service>
-    <type>_ipp._tcp</type>
-    <subtype>_universal._sub._ipp._tcp</subtype>
-    <port>631</port>
-    <txt-record>txtver=1</txt-record>
-    <txt-record>qtotal=1</txt-record>
-    <txt-record>Transparent=T</txt-record>
-    <txt-record>URF=WFD</txt-record>
-    <txt-record>Color=T</txt-record>
-    <txt-record>Duplex=T</txt-record>
-    <txt-record>Copies=T</txt-record>
-  </service>
-</service-group>
-EOF
-chmod 644 files/etc/avahi/services/cups.service
-echo "  ✅ AirPrint 服务文件已创建"
-
-# ==========================================
-# 4. 服务自启动脚本
-# ==========================================
-echo "===== 创建服务自启动脚本 ====="
-cat > files/etc/init.d/custom-autostart << 'EOF'
-#!/bin/sh /etc/rc.common
-START=99
-start() {
-    [ -x /etc/init.d/cupsd ] && /etc/init.d/cupsd enable && /etc/init.d/cupsd start
-    [ -x /etc/init.d/avahi-daemon ] && /etc/init.d/avahi-daemon enable && /etc/init.d/avahi-daemon start
-    [ -x /etc/init.d/ksmbd ] && /etc/init.d/ksmbd enable && /etc/init.d/ksmbd start
-    [ -x /etc/init.d/miniupnpd ] && /etc/init.d/miniupnpd enable && /etc/init.d/miniupnpd start
-    [ -x /etc/init.d/ddns ] && /etc/init.d/ddns enable && /etc/init.d/ddns start
-    [ -x /etc/init.d/adblock ] && /etc/init.d/adblock enable && /etc/init.d/adblock start
-    [ -x /etc/init.d/nlbwmon ] && /etc/init.d/nlbwmon enable && /etc/init.d/nlbwmon start
-}
-EOF
-chmod +x files/etc/init.d/custom-autostart
-ln -sf ../init.d/custom-autostart files/etc/rc.d/S99custom-autostart
-echo "  ✅ 服务自启动脚本已创建"
-
-# ==========================================
-# 5. 自动共享脚本
-# ==========================================
-echo "===== 创建自动共享脚本 ====="
-cat > files/etc/init.d/auto-share-init << 'EOF'
-#!/bin/sh /etc/rc.common
-START=98
-boot() { sleep 15; start; }
-start() {
-    echo "开始自动探测可用存储空间..."
-    root_dev="$(df -k / | awk 'NR==2{print $1}')"
-    BEST_PART=""
-    BEST_FREE=0
-    TOTAL_KB=0
-    IS_SYSTEM_PART=0
-    for part in /mnt/*; do
-        if mountpoint -q "$part" 2>/dev/null; then
-            dev=$(df -k "$part" | awk 'NR==2{print $1}')
-            total_kb=$(df -k "$part" | awk 'NR==2{print $2}')
-            free_kb=$(df -k "$part" | awk 'NR==2{print $4}')
-            if [ "$dev" != "$root_dev" ] && [ "$free_kb" -gt "$BEST_FREE" ]; then
-                BEST_FREE=$free_kb
-                TOTAL_KB=$total_kb
-                BEST_PART=$part
-                IS_SYSTEM_PART=0
-            fi
-        fi
-    done
-    if [ -z "$BEST_PART" ]; then
-        for part in /overlay /; do
-            if mountpoint -q "$part" 2>/dev/null; then
-                free_kb=$(df -k "$part" | awk 'NR==2{print $4}')
-                if [ "$free_kb" -gt "$BEST_FREE" ]; then
-                    BEST_FREE=$free_kb
-                    TOTAL_KB=$(df -k "$part" | awk 'NR==2{print $2}')
-                    BEST_PART=$part
-                    IS_SYSTEM_PART=1
-                fi
-            fi
-        done
-    fi
-    if [ -z "$BEST_PART" ]; then
-        echo "未找到可用存储分区，跳过共享配置。"
-        return 0
-    fi
-    SHARE_DIR="$BEST_PART/OpenWrt_Share"
-    mkdir -p "$SHARE_DIR"
-    chmod 0777 "$SHARE_DIR"
-    free_kb=$(df -k "$BEST_PART" | awk 'NR==2{print $4}')
-    use_kb=$((free_kb * 60 / 100))
-    echo "$use_kb" > "$SHARE_DIR/.size_limit_kb"
-    while uci delete ksmbd.@share[0] 2>/dev/null; do :; done
-    uci add ksmbd share
-    uci set ksmbd.@share[-1].name='Auto_Share'
-    uci set ksmbd.@share[-1].path="$SHARE_DIR"
-    uci set ksmbd.@share[-1].browseable='yes'
-    uci set ksmbd.@share[-1].read_only='no'
-    uci set ksmbd.@share[-1].guest_ok='yes'
-    uci set ksmbd.@share[-1].force_directory_mode='0777'
-    uci set ksmbd.@share[-1].force_create_mode='0666'
-    uci commit ksmbd
-    /etc/init.d/ksmbd restart
-    TOTAL_MB=$((TOTAL_KB / 1024))
-    SHARE_MB=$((use_kb / 1024))
-    echo "自动共享配置完成！" > "$SHARE_DIR/README.txt"
-    echo "分区：$BEST_PART (总容量约 ${TOTAL_MB}MB)" >> "$SHARE_DIR/README.txt"
-    echo "类型：$([ "$IS_SYSTEM_PART" -eq 0 ] && echo '外部存储' || echo '系统分区')" >> "$SHARE_DIR/README.txt"
-    echo "共享空间上限(60%剩余空间)：${SHARE_MB}MB" >> "$SHARE_DIR/README.txt"
-    echo "自动共享初始化完成：$SHARE_DIR"
-}
-stop() {
-    echo "auto-share-init stopped."
-}
-EOF
-chmod +x files/etc/init.d/auto-share-init
-ln -sf ../init.d/auto-share-init files/etc/rc.d/S98auto-share-init
-echo "  ✅ 自动共享脚本已创建"
-
-# ==========================================
-# 6. 安装中文语言包（精确安装）
-# ==========================================
-echo "===== 安装中文语言包 ====="
-./scripts/feeds install luci-i18n-base-zh-cn && echo "  ✅ luci-i18n-base-zh-cn" || echo "  ⚠️ luci-i18n-base-zh-cn 失败"
-./scripts/feeds install luci-i18n-firewall-zh-cn && echo "  ✅ luci-i18n-firewall-zh-cn" || echo "  ⚠️ luci-i18n-firewall-zh-cn 失败"
-./scripts/feeds install luci-i18n-opkg-zh-cn && echo "  ✅ luci-i18n-opkg-zh-cn" || echo "  ⚠️ luci-i18n-opkg-zh-cn 失败"
-./scripts/feeds install luci-i18n-upnp-zh-cn && echo "  ✅ luci-i18n-upnp-zh-cn" || echo "  ⚠️ luci-i18n-upnp-zh-cn 失败"
-./scripts/feeds install luci-i18n-ddns-zh-cn && echo "  ✅ luci-i18n-ddns-zh-cn" || echo "  ⚠️ luci-i18n-ddns-zh-cn 失败"
-./scripts/feeds install luci-i18n-sqm-zh-cn && echo "  ✅ luci-i18n-sqm-zh-cn" || echo "  ⚠️ luci-i18n-sqm-zh-cn 失败"
-./scripts/feeds install luci-i18n-wol-zh-cn && echo "  ✅ luci-i18n-wol-zh-cn" || echo "  ⚠️ luci-i18n-wol-zh-cn 失败"
-./scripts/feeds install luci-i18n-nft-qos-zh-cn && echo "  ✅ luci-i18n-nft-qos-zh-cn" || echo "  ⚠️ luci-i18n-nft-qos-zh-cn 失败"
-./scripts/feeds install luci-i18n-attendedsysupgrade-zh-cn && echo "  ✅ luci-i18n-attendedsysupgrade-zh-cn" || echo "  ⚠️ luci-i18n-attendedsysupgrade-zh-cn 失败"
-./scripts/feeds install luci-i18n-wireguard-zh-cn && echo "  ✅ luci-i18n-wireguard-zh-cn" || echo "  ⚠️ luci-i18n-wireguard-zh-cn 失败"
-./scripts/feeds install luci-i18n-ttyd-zh-cn && echo "  ✅ luci-i18n-ttyd-zh-cn" || echo "  ⚠️ luci-i18n-ttyd-zh-cn 失败"
-./scripts/feeds install luci-i18n-ssr-plus-zh-cn && echo "  ✅ luci-i18n-ssr-plus-zh-cn" || echo "  ⚠️ luci-i18n-ssr-plus-zh-cn 失败"
-./scripts/feeds install luci-i18n-cupsd-zh-cn && echo "  ✅ luci-i18n-cupsd-zh-cn" || echo "  ⚠️ luci-i18n-cupsd-zh-cn 失败"
-./scripts/feeds install luci-i18n-adblock-zh-cn && echo "  ✅ luci-i18n-adblock-zh-cn" || echo "  ⚠️ luci-i18n-adblock-zh-cn 失败"
-./scripts/feeds install luci-i18n-nlbwmon-zh-cn && echo "  ✅ luci-i18n-nlbwmon-zh-cn" || echo "  ⚠️ luci-i18n-nlbwmon-zh-cn 失败"
-./scripts/feeds install luci-i18n-commands-zh-cn && echo "  ✅ luci-i18n-commands-zh-cn" || echo "  ⚠️ luci-i18n-commands-zh-cn 失败"
-./scripts/feeds install luci-i18n-watchcat-zh-cn && echo "  ✅ luci-i18n-watchcat-zh-cn" || echo "  ⚠️ luci-i18n-watchcat-zh-cn 失败"
-./scripts/feeds install luci-i18n-autoreboot-zh-cn 2>/dev/null && echo "  ✅ luci-i18n-autoreboot-zh-cn" || echo "  ⚠️ luci-i18n-autoreboot-zh-cn 失败"
-
-# ==========================================
-# 8. 安装 avahi（网络打印机发现）
-# ==========================================
-echo "===== 安装 avahi ====="
-./scripts/feeds install avahi-dbus-daemon && echo "  ✅ avahi-dbus-daemon" || {
-    ./scripts/feeds install avahi-nodbus-daemon && echo "  ✅ avahi-nodbus-daemon" || echo "  ⚠️ avahi 失败"
-}
-
-# ==========================================
-# 9. 安装 ksmbd 相关（文件共享）
-# ==========================================
-echo "===== 安装 ksmbd ====="
-./scripts/feeds install ksmbd-server && echo "  ✅ ksmbd-server" || echo "  ⚠️ ksmbd-server 失败"
-./scripts/feeds install ksmbd-utils && echo "  ✅ ksmbd-utils" || echo "  ⚠️ ksmbd-utils 失败"
-./scripts/feeds install luci-app-ksmbd && echo "  ✅ luci-app-ksmbd" || echo "  ⚠️ luci-app-ksmbd 失败"
-
-echo "✅ diy-part2.sh 执行完成"
+# ============================================
+# 8. 版本信息显示
+# ============================================
+echo ""
+echo "=========================================="
+echo "构建信息:"
+echo "  - OpenWrt版本: 24.10 Official Stable"
+echo "  - 目标平台: x86_64 (通用)"
+echo "  - 默认主题: Material"
+echo "  - 默认时区: Asia/Shanghai (CST-8)"
+echo "  - 中文支持: 已启用"
+echo "=========================================="
+echo ""
+echo "包含的功能包:"
+echo "  [✓] luci-app-autoreboot    - 定时重启"
+echo "  [✓] luci-app-adblock       - 广告屏蔽"
+echo "  [✓] luci-app-wol           - 网络唤醒"
+echo "  [✓] luci-app-nlbwmon       - 流量统计"
+echo "  [✓] luci-app-commands      - Web命令执行"
+echo "  [✓] luci-app-watchcat      - 断网自动重启"
+echo "  [✓] luci-app-ksmbd         - SMB文件共享"
+echo "  [✓] luci-app-ddns          - 动态域名"
+echo "  [✓] luci-app-upnp          - UPnP"
+echo "  [✓] luci-app-accesscontrol - 上网时间控制"
+echo "  [✓] luci-app-statistics    - 性能监控"
+echo "  [✓] iperf3                 - 网络测速"
+echo "=========================================="
+echo ""
+echo "diy-part2.sh 执行完成"
+echo "=========================================="
