@@ -106,7 +106,14 @@ jobs:
       id: compile
       run: |
         cd openwrt
-        
+            bash /workdir/fix_brlaser_direct.sh
+    
+        # 清理brlaser的编译状态，强制重新编译
+        rm -rf build_dir/target-x86_64_musl/brlaser-1.0/.prepared_*
+        rm -rf build_dir/target-x86_64_musl/brlaser-1.0/.built*
+    
+        # 重新准备brlaser
+        make package/feeds/printing/brlaser/prepare V=s
         # 编译前再次确保修复
         echo "=== 编译前最后检查 ==="
         find build_dir -name "tempfile.h" -path "*/brlaser-*/test/*" 2>/dev/null | while read file; do
