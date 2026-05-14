@@ -99,3 +99,11 @@ jobs:
       with:
         name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: openwrt/bin/targets/*/*
+    - name: Create Tag
+      if: steps.compile.outputs.status == 'success'
+      run: |
+        git config --local user.name "GitHub Actions"
+        git config --local user.email "actions@github.com"
+        git tag -a v24.10+Avahi版 -m "OpenWrt 24.10 含Avahi/Gutenprint $(date +%Y.%m.%d)"
+        git push origin v24.10+Avahi版
+        
