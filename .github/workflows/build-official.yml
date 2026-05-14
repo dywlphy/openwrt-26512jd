@@ -38,7 +38,7 @@ jobs:
           liblzo2-dev liblzma-dev libzstd-dev quilt u-boot-tools \
           python3-dev python3-pyelftools python3-yaml ccache \
           aria2 curl subversion \
-          libdbus-1-dev libexpat1-dev libglib2.0-dev  # Avahi/Gutenprint 需要
+          libdbus-1-dev libexpat1-dev libglib2.0-dev
         sudo apt-get clean
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
@@ -50,11 +50,31 @@ jobs:
         git clone -b ${{ env.REPO_BRANCH }} --single-branch --depth 1 ${{ env.REPO_URL }} openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
+    - name: Cache OpenWrt dl (downloads)
+      uses: actions/cache@v4
+      with:
+        path: /workdir/openwrt/dl
+        key: openwrt-dl-${{ hashFiles('diy-part1.sh') }}-${{ github.run_id }}
+        restore-keys: |
+          openwrt-dl-${{ hashFiles('diy-part1.sh') }}-
+          openwrt-dl-
+
     - name: Load custom feeds
       run: |
         chmod +x diy-part1.sh
         cd openwrt
         $GITHUB_WORKSPACE/diy-part1.sh
+
+    - name: Cache OpenWrt build (staging_dir)
+      uses: actions/cache@v4
+      with:
+        path: |
+          /workdir/openwrt/staging_dir
+          /workdir/openwrt/build_dir
+        key: openwrt-build-${{ hashFiles('config.txt') }}-${{ github.run_id }}
+        restore-keys: |
+          openwrt-build-${{ hashFiles('config.txt') }}-
+          openwrt-build-
 
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
@@ -91,7 +111,7 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
-        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+        echo "FILE_DATE=_$(date +%Y%m%d%H%M")" >> $GITHUB_ENV
 
     - name: Upload firmware
       uses: actions/upload-artifact@main
@@ -99,11 +119,11 @@ jobs:
       with:
         name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: openwrt/bin/targets/*/*
+
     - name: Create Tag
       if: steps.compile.outputs.status == 'success'
       run: |
         git config --local user.name "GitHub Actions"
         git config --local user.email "actions@github.com"
-        git tag -a v24.10+Avahi版 -m "OpenWrt 24.10 含Avahi/Gutenprint $(date +%Y.%m.%d)"
-        git push origin v24.10+Avahi版
-        
+        git tag -a "v24.10+Avahi+TurboACC" -m "OpenWrt 24.10 含Avahi/TurboACC/访问控制/Tailscale/ACME/文件管理器/CUPS-PDF $(date +%Y.%m.%d)"
+        git push origin "v24.10+Avahi+TurboACC"
