@@ -37,7 +37,8 @@ jobs:
           ecj java-propose-classpath libelf-dev libfuse-dev libjson-c-dev \
           liblzo2-dev liblzma-dev libzstd-dev quilt u-boot-tools \
           python3-dev python3-pyelftools python3-yaml ccache \
-          aria2 curl subversion
+          aria2 curl subversion \
+          libdbus-1-dev libexpat1-dev libglib2.0-dev  # Avahi/Gutenprint 需要
         sudo apt-get clean
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
