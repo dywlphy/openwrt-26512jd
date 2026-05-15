@@ -36,7 +36,6 @@ CONFIG_PACKAGE_dropbear=y
 CONFIG_PACKAGE_firewall4=y
 CONFIG_PACKAGE_fstools=y
 CONFIG_PACKAGE_ip6tables=y
-CONFIG_PACKAGE_iptables=y
 CONFIG_PACKAGE_kernel=y
 CONFIG_PACKAGE_kmod-ipt-offload=y
 CONFIG_PACKAGE_libc=y
@@ -66,12 +65,12 @@ CONFIG_PACKAGE_ip-full=y
 CONFIG_PACKAGE_ipset=y
 CONFIG_PACKAGE_iptables-mod-conntrack-extra=y
 CONFIG_PACKAGE_iptables-mod-ipopt=y
+CONFIG_PACKAGE_ip6tables=y
 CONFIG_PACKAGE_kmod-tcp-bbr=y
 
 # ============================================
 # 定时重启 - 使用系统计划任务(cron)替代
 # ============================================
-CONFIG_PACKAGE_cron=y
 CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
 
 # ============================================
@@ -181,8 +180,7 @@ CONFIG_PACKAGE_ghostscript-fonts-std=y
 # ============================================
 
 # 上网时间控制
-CONFIG_PACKAGE_luci-app-accesscontrol=y
-CONFIG_PACKAGE_luci-i18n-accesscontrol-zh-cn=y
+CONFIG_PACKAGE_luci-app-nft-timecontrol=y
 
 # Tailscale 内网穿透
 CONFIG_PACKAGE_luci-app-tailscale=y
@@ -246,7 +244,7 @@ CONFIG_PACKAGE_kmod-nls-cp437=y
 CONFIG_PACKAGE_kmod-nls-iso8859-1=y
 CONFIG_PACKAGE_kmod-nls-utf8=y
 CONFIG_PACKAGE_kmod-fs-cifs=y
-CONFIG_PACKAGE_=y
+CONFIG_PACKAGE_kmod-fs-ext4=y
 CONFIG_PACKAGE_kmod-fs-ntfs=y
 CONFIG_PACKAGE_kmod-fs-vfat=y
 CONFIG_PACKAGE_kmod-usb-core=y
@@ -273,7 +271,6 @@ CONFIG_PACKAGE_lm-sensors=y
 CONFIG_PACKAGE_openssh-sftp-server=y
 CONFIG_PACKAGE_openssl-util=y
 CONFIG_PACKAGE_vim=y
-CONFIG_PACKAGE_zlib=y
 
 # ============================================
 # USB存储自动挂载
@@ -281,7 +278,6 @@ CONFIG_PACKAGE_zlib=y
 CONFIG_PACKAGE_block-mount=y
 CONFIG_PACKAGE_fdisk=y
 CONFIG_PACKAGE_e2fsprogs=y
-CONFIG_PACKAGE_kmod-fs-ext4=y
 CONFIG_PACKAGE_automount=y
 
 # ============================================
@@ -296,8 +292,7 @@ CONFIG_PACKAGE_luci-i18n-sqm-zh-cn=y
 # ============================================
 CONFIG_PACKAGE_wireguard-tools=y
 CONFIG_PACKAGE_kmod-wireguard=y
-CONFIG_PACKAGE_luci-app-wireguard=y
-CONFIG_PACKAGE_luci-i18n-wireguard-zh-cn=y
+CONFIG_PACKAGE_luci-proto-wireguard=y
 
 # ============================================
 # 策略路由 (pbr) - WireGuard 分流
