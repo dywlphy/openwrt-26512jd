@@ -1,8 +1,11 @@
 #!/bin/bash
+#
+# diy-part2.sh - 更新feeds后的自定义配置
+#
 
 echo "=========================================="
 echo "OpenWrt 24.10 Official Stable Build"
-echo "diy-part2.sh - 更新feeds后的配置"
+echo "diy-part2.sh - 自定义配置"
 echo "=========================================="
 
 # 1. 设置默认主机名
@@ -15,7 +18,7 @@ echo "[2/6] 设置默认时区..."
 sed -i "s/'UTC'/'CST-8'/g" package/base-files/files/bin/config_generate
 sed -i "/'CST-8'/a \\\t\tset system.@system[-1].zonename='Asia/Shanghai'" package/base-files/files/bin/config_generate
 
-# 3. 设置默认主题
+# 3. 设置默认主题为Material
 echo "[3/6] 设置默认主题为Material..."
 sed -i 's/luci-theme-bootstrap/luci-theme-material/g' feeds/luci/collections/luci/Makefile 2>/dev/null || true
 sed -i 's/luci-theme-bootstrap/luci-theme-material/g' package/feeds/luci/luci/Makefile 2>/dev/null || true
@@ -38,12 +41,9 @@ echo "[5/6] 集成CUPS中文汉化..."
 mkdir -p package/base-files/files/usr/share/cups/templates
 mkdir -p package/base-files/files/usr/share/cups/doc-root
 
-# 从仓库复制汉化文件（需要把CUPS_2.3.1_zh_CN.zip上传到仓库）
 if [ -f "$GITHUB_WORKSPACE/CUPS_2.3.1_zh_CN.zip" ]; then
     unzip -o $GITHUB_WORKSPACE/CUPS_2.3.1_zh_CN.zip -d /tmp/cups-zh
-    # 复制中文模板到 templates
     cp -r /tmp/cups-zh/zh_CN/* package/base-files/files/usr/share/cups/templates/
-    # 复制首页
     cp /tmp/cups-zh/index.html package/base-files/files/usr/share/cups/doc-root/ 2>/dev/null || true
     chmod -R 755 package/base-files/files/usr/share/cups/templates
     chmod -R 755 package/base-files/files/usr/share/cups/doc-root
@@ -53,37 +53,28 @@ else
     echo "警告: 未找到CUPS_2.3.1_zh_CN.zip，跳过"
 fi
 
-# 6. 设置GRUB等待时间为2秒
-echo "[6/6] 设置GRUB等待时间..."
+# 6. GRUB等待时间 + CUPS默认配置
+echo "[6/6] 配置GRUB和CUPS默认设置..."
+
+# GRUB等待时间2秒
 sed -i 's/set timeout=.*/set timeout=2/' package/base-files/files/boot/grub/grub.cfg 2>/dev/null || echo "set timeout=2" > package/base-files/files/boot/grub/grub.cfg
 
-# 6. CUPS 默认配置（启用Avahi）
-echo "[6/6] 配置CUPS默认设置..."
+# CUPS配置（启用Avahi发现）
 mkdir -p package/base-files/files/etc/cups
-
 cat > package/base-files/files/etc/cups/cupsd.conf << 'EOF'
 # CUPS 配置文件 - OpenWrt 24.10
-# 启用网络打印和Avahi发现
-
-# 监听地址
 Listen *:631
 Listen /var/run/cups/cups.sock
-
-# 日志级别
 LogLevel warn
 AccessLog /var/log/cups/access_log
 ErrorLog /var/log/cups/error_log
-
-# 默认策略
 DefaultPolicy default
 
-# Web界面访问控制
 <Location />
   Order allow,deny
   Allow @LOCAL
 </Location>
 
-# 管理界面
 <Location /admin>
   Order allow,deny
   Allow @LOCAL
@@ -96,18 +87,16 @@ DefaultPolicy default
   Allow @LOCAL
 </Location>
 
-# 打印机共享
 <Location /printers>
   Order allow,deny
   Allow @LOCAL
 </Location>
 
-# 启用Avahi/DNS-SD打印机发现
 Browsing On
 BrowseLocalProtocols dnssd
 EOF
 
-# Avahi 服务文件（让CUPS打印机被发现）
+# Avahi服务文件（CUPS打印机发现）
 mkdir -p package/base-files/files/etc/avahi/services
 cat > package/base-files/files/etc/avahi/services/cups.service << 'EOF'
 <?xml version="1.0" standalone='no'?>
@@ -129,5 +118,6 @@ echo "构建信息:"
 echo "  - OpenWrt版本: 24.10 Official Stable"
 echo "  - 目标平台: x86_64"
 echo "  - 打印: CUPS + Avahi + 中文界面"
-echo "  - 网络: Tailscale/ACME/文件管理器/访问控制"
+echo "  - VPN: WireGuard + pbr"
+echo "  - 网络: Tailscale/ACME/frp"
 echo "=========================================="
