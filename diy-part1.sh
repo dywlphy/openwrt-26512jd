@@ -24,8 +24,8 @@ cat > feeds.conf << 'EOF'
 src-git packages https://github.com/openwrt/packages.git;openwrt-24.10
 src-git luci https://github.com/openwrt/luci.git;openwrt-24.10
 src-git printing https://github.com/dywlphy/openwrt-feed-printing.git;main
-src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages;main
-src-git passwall https://github.com/xiaorouji/openwrt-passwall;main
+src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main
+src-git passwall https://github.com/Openwrt-Passwall/openwrt-passwall.git;main
 EOF
 
 echo "[2/3] 当前feeds配置:"
