@@ -42,26 +42,36 @@ done
 
 if [ -n "$CUPS_ZIP" ]; then
   echo "  找到 CUPS 中文包: $CUPS_ZIP"
-  unzip -o "$CUPS_ZIP" -d /tmp/cups-zh 2>/dev/null
+  unzip -o "$CUPS_ZIP" -d /tmp/cups-zh
+  # 修复权限（zip可能在Windows上创建，解压后目录缺少执行权限）
+  chmod -R a+rX /tmp/cups-zh
+  sync  # 确保文件写入完成
 
   # zip 内结构: CUPS-zh/CUPS-2.4.2/usr_share_cups_templates/*.tmpl
   # zip 内结构: CUPS-zh/CUPS-2.4.2/usr_share_cups_doc-root/*
-  TMPL_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_templates" 2>/dev/null | head -1)
-  DOC_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_doc-root" 2>/dev/null | head -1)
+  TMPL_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_templates" | head -1)
+  DOC_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_doc-root" | head -1)
+
+  echo "  - 模板目录: $TMPL_DIR"
+  echo "  - 文档目录: $DOC_DIR"
 
   if [ -n "$TMPL_DIR" ]; then
-    cp -r "$TMPL_DIR"/* package/cups-zh-cn/files/usr/share/cups/templates/ 2>/dev/null
-    TMPL_COUNT=$(find package/cups-zh-cn/files/usr/share/cups/templates/ -type f 2>/dev/null | wc -l)
+    cp -r "$TMPL_DIR"/* package/cups-zh-cn/files/usr/share/cups/templates/
+    TMPL_COUNT=$(find package/cups-zh-cn/files/usr/share/cups/templates/ -type f | wc -l)
     echo "  - CUPS 中文模板已复制 ($TMPL_COUNT 个文件)"
+  else
+    echo "  - 错误: 未找到模板目录"
   fi
 
   if [ -n "$DOC_DIR" ]; then
-    cp -r "$DOC_DIR"/* package/cups-zh-cn/files/usr/share/cups/doc-root/ 2>/dev/null
-    DOC_COUNT=$(find package/cups-zh-cn/files/usr/share/cups/doc-root/ -type f 2>/dev/null | wc -l)
+    cp -r "$DOC_DIR"/* package/cups-zh-cn/files/usr/share/cups/doc-root/
+    DOC_COUNT=$(find package/cups-zh-cn/files/usr/share/cups/doc-root/ -type f | wc -l)
     echo "  - CUPS 中文文档已复制 ($DOC_COUNT 个文件)"
+  else
+    echo "  - 错误: 未找到文档目录"
   fi
 
-  rm -rf /tmp/cups-zh
+  rm -rf /tmp/cups-zh 2>/dev/null || true
 else
   echo "  - 警告: 未找到 CUPS-zh.zip，跳过汉化"
 fi
@@ -233,12 +243,9 @@ echo "  - 网络: Tailscale/ACME/frp"
 echo "  - 控制: timecontrol"
 echo "=========================================="
 
-# 7. 强制重编译 base-files，确保 files/ 下的新增文件生效
-#    解决增量编译时 base-files 被跳过的问题
+# 7. 触发 base-files 重新打包（确保 files/ 下的新增文件生效）
+#    只需 touch Makefile 让构建系统检测到变化，无需手动 clean/compile
 echo ""
-echo "[额外] 强制重编译 base-files 以包含 uci-defaults 脚本..."
+echo "[额外] 触发 base-files 重新打包..."
 touch package/base-files/Makefile
-make package/base-files/clean V=s 2>&1 | tail -n 5
-make package/base-files/compile V=s 2>&1 | tail -n 5
-make package/base-files/install V=s 2>&1 | tail -n 5
-echo "  - base-files 重编译完成"
+echo "  - base-files Makefile 时间戳已更新"
