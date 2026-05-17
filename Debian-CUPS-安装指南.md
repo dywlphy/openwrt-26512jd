@@ -2,21 +2,7 @@
 
 ## 一、PVE 创建虚拟机
 
-### 推荐配置
-
-| 配置项 | 推荐值 | 说明 |
-|--------|--------|------|
-| CPU | 1 核 | CUPS 不需要多核 |
-| 内存 | 512MB - 1GB | CUPS 占用约 50-100MB |
-| 硬盘 | 8GB | 足够系统 + 打印缓存 |
-| 网络 | 桥接模式 | 局域网访问 |
-| ISO | debian-12/13-amd64-netinst.iso | 约 400-600MB |
-
----
-
-## 二、Debian 最小化安装
-
-### 下载 ISO
+### 1.1 下载 ISO
 
 官网：https://www.debian.org/distrib/netinst
 
@@ -27,28 +13,71 @@
 
 选择：`amd64` → `debian-12.x.x-amd64-netinst.iso` 或 `debian-13.x.x-amd64-netinst.iso`
 
-### 安装步骤
+### 1.2 虚拟机硬件配置
 
-1. **语言选择**：English（避免中文乱码）
+| 配置项 | 推荐值 | 说明 |
+|--------|--------|------|
+| 机器类型 | **Q35** | 现代芯片组，支持 PCIe |
+| BIOS | SeaBIOS | 默认即可 |
+| SCSI 控制器 | **VirtIO SCSI** | 性能最好，支持多队列 |
+| 硬盘总线 | SCSI | 配合 VirtIO SCSI |
+| 硬盘大小 | 8GB | 足够系统 + 打印缓存 |
+| 硬盘缓存 | **Write back** | 性能最好 |
+| SSD 仿真 | **开启** | 优化 I/O 调度 |
+| IO 方式 | **io_uring** | 性能最好（Linux 5.1+） |
+| CPU 核心数 | **1 核** | CUPS 轻量级，1 核足够 |
+| CPU 类型 | **Host** | 性能最好，直通宿主机特性 |
+| 内存 | **512MB - 1GB** | CUPS 占用约 50-100MB |
+| Ballooning | **关闭** | 固定内存更稳定 |
+| 网卡模型 | **VirtIO** | 半虚拟化，性能最好 |
+| 网桥 | vmbr0 | 默认桥接 |
+| 防火墙 | **关闭** | 使用 Debian 内部防火墙管理 |
+| ISO | debian-12/13-amd64-netinst.iso | 约 400-600MB |
 
-2. **安装模式**：选择 **Install**（文本模式，非图形界面）
+---
 
-3. **分区**：
-   - 选择 **Guided - use entire disk**
-   - 选择 **All files in one partition**
-   - 选择 **Finish partitioning and write changes to disk**
+## 二、Debian 最小化安装
 
-4. **软件选择**：**取消所有选项**，只保留：
-   ```
-   [ ] Debian desktop environment
-   [ ] ... GNOME / KDE / Xfce ...
-   [ ] web server
-   [ ] print server          ← 取消！我们自己装
-   [x] SSH server            ← 保留（远程管理）
-   [ ] standard system utilities  ← 可取消
-   ```
+### 安装步骤（逐项指引）
 
-5. **完成安装**，重启
+| 步骤 | 选择 | 说明 |
+|------|------|------|
+| 1. Select a language | **English** | 避免中文乱码 |
+| 2. Select your location | **other → Asia → China** | 中国 |
+| 3. Configure locales | **United States - en_US.UTF-8** | 最通用的 locale |
+| 4. Configure the keyboard | **American English** | 美式键盘 |
+| 5. Hostname | **cups** 或自定义 | 主机名 |
+| 6. Domain name | **留空** | 不需要域名 |
+| 7. Root password | 设置密码 | 记住此密码 |
+| 8. 创建普通用户 | **跳过（选 Go Back）** | 稍后脚本自动创建 cupsadmin |
+| 9. Configure the clock | **Asia/Shanghai** | 时区 |
+| 10. Partition disks | **Guided - use entire disk** | 自动分区 |
+| 11. Partitioning scheme | **All files in one partition** | 单分区 |
+| 12. Write changes | **Yes** | 确认写入 |
+| 13. Scan extra media | **No** | 不扫描 |
+| 14. Mirror country | **China** | 中国镜像 |
+| 15. Mirror | **mirrors.ustc.edu.cn** | 中科大镜像（安装更快） |
+| 16. HTTP proxy | **留空** | 无代理 |
+| 17. Popularity-contest | **No** | 不参与统计 |
+| 18. Software selection | **只选 SSH server** | ⚠️ 关键步骤！ |
+| 19. Install GRUB | **Yes** | 安装引导 |
+| 20. GRUB device | 选择硬盘 | 如 /dev/sda |
+| 21. Finish | **Continue** | 完成安装 |
+
+### 软件选择界面（重要！）
+
+```
+[ ] Debian desktop environment      ← 取消
+[ ] ... GNOME / KDE / Xfce ...      ← 取消
+[ ] web server                      ← 取消
+[ ] print server                    ← 取消！我们自己装
+[x] SSH server                      ← 保留 ✅
+[ ] standard system utilities       ← 取消
+```
+
+### 安装完成
+
+重启后，用 SSH 登录执行后续脚本
 
 ---
 
