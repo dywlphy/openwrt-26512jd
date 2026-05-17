@@ -243,6 +243,23 @@ GRUBEOF
 chmod +x package/base-files/files/etc/uci-defaults/99-grub-timeout
 echo "  - GRUB uci-defaults脚本已创建"
 
+# timecontrol 菜单路径修复（首次启动时执行，确保包安装后仍生效）
+cat > package/base-files/files/etc/uci-defaults/97-timecontrol-menu << 'TCEOF'
+#!/bin/sh
+# 修复 timecontrol 菜单路径：admin/control → admin/network
+# 原因：OpenWrt 24.10 没有 admin/control 父菜单，包安装后原始路径无效
+TC_MENU="/usr/share/luci/menu.d/luci-app-timecontrol.json"
+if [ -f "$TC_MENU" ]; then
+    sed -i 's|"admin/control/|"admin/network/|g' "$TC_MENU"
+    echo "timecontrol 菜单路径已修复: 网络 → Time Control"
+fi
+# 清除 LuCI 缓存使菜单生效
+rm -rf /tmp/luci-* 2>/dev/null
+exit 0
+TCEOF
+chmod +x package/base-files/files/etc/uci-defaults/97-timecontrol-menu
+echo "  - timecontrol 菜单修复 uci-defaults脚本已创建"
+
 # 6. 添加自定义banner
 echo "[6/8] 添加自定义banner..."
 cat > package/base-files/files/etc/banner << 'EOF'
