@@ -410,24 +410,26 @@ CONFIG_PACKAGE_luci-i18n-frpc-zh-cn=y
 
 
 # ============================================
+# PassWall 2 主插件与依赖
+# ============================================
+CONFIG_PACKAGE_luci-app-passwall2=y
+CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
+
+# ============================================
 # PassWall 2 透明代理依赖 (iptables 模式)
 # ============================================
 CONFIG_PACKAGE_iptables-mod-tproxy=y
 CONFIG_PACKAGE_iptables-mod-socket=y
 CONFIG_PACKAGE_iptables-mod-iprange=y
-CONFIG_PACKAGE_iptables-mod-conntrack-extra=y
 CONFIG_PACKAGE_kmod-ipt-nat=y
+# 下面这几个包你的列表里已经有了，这里显式列出只是为了确保万无一失
+CONFIG_PACKAGE_iptables-mod-conntrack-extra=y
+CONFIG_PACKAGE_ipset=y
 
 # ============================================
-# dnsmasq-full nftset 支持 (PassWall 2 强制要求)
+# dnsmasq-full 高级功能支持 (PassWall 2 依赖)
 # ============================================
 CONFIG_PACKAGE_dnsmasq_full_nftset=y
-
-# ============================================
-# PassWall 2 主插件
-# ============================================
-CONFIG_PACKAGE_luci-app-passwall2=y
-CONFIG_PACKAGE_luci-i18n-passwall2-zh-cn=y
 
 
 # ============================================
