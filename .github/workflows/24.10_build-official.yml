@@ -146,6 +146,15 @@ jobs:
         sed -i 's/CONFIG_PACKAGE_kmod-ipt-nat6=m/# CONFIG_PACKAGE_kmod-ipt-nat6 is not set/' .config
         # 强制设置GRUB等待时间为2秒
         sed -i 's/CONFIG_GRUB_TIMEOUT=.*/CONFIG_GRUB_TIMEOUT=2/' .config
+        
+        # 在现有 sed 命令的最后添加这两行
+        sed -i 's/CONFIG_PACKAGE_v2ray-plugin=y/# CONFIG_PACKAGE_v2ray-plugin is not set/' .config
+        sed -i 's/CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Plugin=y/# CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Plugin is not set/' .config
+        if ! grep -q "CONFIG_PACKAGE_luci-app-passwall2=y" .config; then
+          echo "CONFIG_PACKAGE_luci-app-passwall2=y" >> .config
+          echo " ✅ 已添加 PassWall 2 到 .config"
+        fi
+        
         make defconfig
         make download -j8
         find dl -size -1024c -exec rm -f {} \;
