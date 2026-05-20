@@ -123,12 +123,15 @@ jobs:
       uses: P3TERX/ssh2actions@v1.0.0
       if: github.event.inputs.ssh == 'true'
 
-    # 清理Tailscale缓存
-    - name: Clean Go mod cache
+    # 清理缓存（避免上次失败的残留）
+    - name: Clean cache
       run: |
         cd openwrt
         rm -rf dl/go-mod-cache
+        rm -rf dl/cups-2.4.7.tar.zst
+        rm -rf build_dir/target-x86_64_musl/cups-2.4.7
         make package/tailscale/clean 2>/dev/null || true
+        make package/cups/clean 2>/dev/null || true
 
     # 下载源码包 + defconfig
     - name: Download package
