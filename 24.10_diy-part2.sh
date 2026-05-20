@@ -51,45 +51,85 @@ else
 fi
 
 # ============================================
-# 3.2 修改 cups 编译配置以支持 NLS（后端汉化关键 - 修复版）
+# 3.2 强制排除 geoview（Go >= 1.25.0 required, 24.10 only has 1.23.12）
 # ============================================
 echo ""
-echo "[3.2/8] 修改 cups 编译配置启用 NLS..."
-CUPS_MAKEFILE=$(find feeds -name Makefile -path '*/cups/*' 2>/dev/null | grep -v "cups-bjnp\|cups-filters\|libcups" | head -1)
+echo "[3.2/8] 强制排除 geoview（Go 版本不兼容）..."
+TARGET_CONFIG="target/linux/x86/config-6.6"
+if [ -f "$TARGET_CONFIG" ]; then
+    if ! grep -q "^CONFIG_PACKAGE_geoview=n" "$TARGET_CONFIG" 2>/dev/null; then
+        echo "CONFIG_PACKAGE_geoview=n" >> "$TARGET_CONFIG"
+        echo " ✅ geoview 已在 target config 中强制排除"
+    else
+        echo " ✅ geoview 已在 target config 中排除"
+    fi
+else
+    echo " ⚠️ 目标平台配置文件不存在，尝试通用方式排除"
+fi
+
+# 同时确保 .config 中也为 not set（双重保险）
+if [ -f .config ]; then
+    if grep -qE "^CONFIG_PACKAGE_geoview=[ym]$" .config; then
+        sed -i 's/^CONFIG_PACKAGE_geoview=[ym]$/# CONFIG_PACKAGE_geoview is not set/' .config
+        echo " ✅ .config 中已禁用 geoview"
+    elif grep -q "^# CONFIG_PACKAGE_geoview is not set" .config; then
+        echo " ✅ .config 中 geoview 已禁用"
+    fi
+fi
+
+# ============================================
+# 3.3 Patch CUPS 编译配置（后端汉化关键步骤）
+# ============================================
+echo ""
+echo "[3.3/8] Patch CUPS 编译配置（启用 NLS + 中文语言支持）..."
+CUPS_MAKEFILE=$(find feeds -name Makefile -path '*/cups/Makefile' 2>/dev/null | grep -v "cups-bjnp\|cups-filters\|libcups" | head -1)
 if [ -n "$CUPS_MAKEFILE" ]; then
-    # 1. 尝试替换（兼容旧版 Makefile 格式，如果失败也无妨）
+    echo " 📋 找到 CUPS Makefile: $CUPS_MAKEFILE"
+
+    # --- 3.2.1 启用 NLS（gettext 国际化支持） ---
+    # 替换 --disable-nls 为 --enable-nls（如果存在）
     sed -i 's/--disable-nls/--enable-nls/' "$CUPS_MAKEFILE" 2>/dev/null || true
-    
-    # 2. 关键步骤：强制追加 --enable-nls 配置参数
-    # 这行命令会直接在 Makefile 末尾追加新的参数，无论原来有没有，都会生效
-    echo 'CONFIGURE_ARGS += --enable-nls' >> "$CUPS_MAKEFILE"
-    echo " ✅ 已强制追加 --enable-nls 到 CUPS Makefile"
-    
-    # 3. 检查并添加对 libintl-full 的依赖
+
+    # --- 3.2.2 启用中文语言支持 ---
+    # --with-languages= （空值）禁用了所有语言，改为 zh_CN 启用中文
+    if grep -q '\-\-with-languages= \\$' "$CUPS_MAKEFILE"; then
+        sed -i 's|--with-languages= \\|--with-languages=zh_CN \\|' "$CUPS_MAKEFILE"
+        echo " ✅ --with-languages 已改为 zh_CN"
+    else
+        echo " ⚠️ --with-languages= 行格式不匹配，尝试通用替换"
+        sed -i 's|--with-languages=|--with-languages=zh_CN|' "$CUPS_MAKEFILE" 2>/dev/null || true
+    fi
+
+    # --- 3.2.3 添加 libintl 链接 ---
+    # CUPS configure 需要 libintl 才能启用 gettext，在 LIBS 中追加 -lintl
+    if grep -q 'LIBS="\$(TARGET_LDFLAGS)' "$CUPS_MAKEFILE"; then
+        sed -i 's|LIBS="\$(TARGET_LDFLAGS) -lz -lpng -ljpeg -lubus -lubox"|LIBS="\$(TARGET_LDFLAGS) -lz -lpng -ljpeg -lubus -lubox -lintl"|' "$CUPS_MAKEFILE"
+        echo " ✅ LIBS 已追加 -lintl"
+    elif ! grep -q "\-lintl" "$CUPS_MAKEFILE"; then
+        # 备用：在 CONFIGURE_VARS 的 LIBS 行末尾追加
+        sed -i '/^CONFIGURE_VARS/,/)$/ { /LIBS=/ s|"$| -lintl"| }' "$CUPS_MAKEFILE" 2>/dev/null || true
+        echo " ⚠️ LIBS 追加 -lintl（备用方式）"
+    else
+        echo " ✅ -lintl 已存在于 LIBS 中"
+    fi
+
+    # --- 3.2.4 添加 libintl-full 运行时依赖 ---
     if ! grep -q "libintl-full" "$CUPS_MAKEFILE"; then
         sed -i '/DEPENDS:=/s/$/ +libintl-full/' "$CUPS_MAKEFILE"
-        echo " ✅ libintl-full 依赖已添加"
+        echo " ✅ libintl-full 依赖已添加到 DEPENDS"
     else
         echo " ✅ libintl-full 依赖已存在"
     fi
-else
-    echo " ❌ 未找到 CUPS Makefile，NLS 未启用"
-fi
 
-# 4. Patch CUPS 编译配置，启用中文语言支持
-echo ""
-echo "[4/7] Patch CUPS 编译配置..."
-CUPS_MAKEFILE=$(find package/feeds/printing -name "Makefile" -path "*/cups/Makefile" 2>/dev/null | head -1)
-if [ -n "$CUPS_MAKEFILE" ]; then
-  # --with-languages= （空值）禁用了所有语言，改为 zh_CN 启用中文
-  sed -i 's|--with-languages= \\|--with-languages=zh_CN \\|' "$CUPS_MAKEFILE"
-  # 添加 libintl-full 依赖到 cups 包
-  sed -i 's|DEPENDS:=+libcups +libusb-1.0 +libstdcpp +libubox +libubus +umdns|DEPENDS:=+libcups +libusb-1.0 +libstdcpp +libubox +libubus +umdns +libintl-full|' "$CUPS_MAKEFILE"
-  # 在 CONFIGURE_VARS 中添加 libintl
-  sed -i 's|LIBS="$(TARGET_LDFLAGS) -lz -lpng -ljpeg -lubus -lubox"|LIBS="$(TARGET_LDFLAGS) -lz -lpng -ljpeg -lubus -lubox -lintl"|' "$CUPS_MAKEFILE"
-  echo " ✅ CUPS Makefile 已 patch（--with-languages=zh_CN + libintl）"
+    # --- 3.2.5 验证 patch 结果 ---
+    echo ""
+    echo " 📋 CUPS Makefile patch 验证:"
+    grep -n "with-languages" "$CUPS_MAKEFILE" | head -3
+    grep -n "lintl" "$CUPS_MAKEFILE" | head -3
+    grep -n "libintl-full" "$CUPS_MAKEFILE" | head -3
 else
-  echo " ⚠️ 未找到 CUPS Makefile，跳过 patch"
+    echo " ❌ 未找到 CUPS Makefile，后端汉化 patch 跳过"
+    echo " ⚠️ 请检查 printing feed 是否正确更新"
 fi
 
 # ============================================
@@ -187,23 +227,27 @@ uci set system.@system[0].language='zh_CN' 2>/dev/null || true
 uci commit system 2>/dev/null || true
 
 # 写入环境变量（确保重启后仍生效）
+# OpenWrt 使用 musl libc，不支持 locale-gen
+# CUPS gettext 通过 cupsLangDefault() 读取 LANG/LC_MESSAGES 环境变量
 if ! grep -q "zh_CN.UTF-8" /etc/profile 2>/dev/null; then
-    echo 'export LC_MESSAGES="zh_CN.UTF-8"' >> /etc/profile
+    echo 'export LC_ALL="zh_CN.UTF-8"' >> /etc/profile
     echo 'export LANG="zh_CN.UTF-8"' >> /etc/profile
+    echo 'export LC_MESSAGES="zh_CN.UTF-8"' >> /etc/profile
 fi
-export LC_MESSAGES="zh_CN.UTF-8"
+export LC_ALL="zh_CN.UTF-8"
 export LANG="zh_CN.UTF-8"
+export LC_MESSAGES="zh_CN.UTF-8"
 
-# 生成中文 locale
-if command -v locale-gen >/dev/null 2>&1; then
-    if ! grep -q "zh_CN.UTF-8" /etc/locale.gen 2>/dev/null; then
-        echo "zh_CN.UTF-8 UTF-8" >> /etc/locale.gen
+# 确保 cupsd init 脚本启动时也设置语言环境
+CUPSD_INIT="/etc/init.d/cupsd"
+if [ -f "$CUPSD_INIT" ]; then
+    # 在 start_service 函数开头注入环境变量
+    if ! grep -q "LC_ALL" "$CUPSD_INIT"; then
+        sed -i '/start_service()/a \\texport LC_ALL="zh_CN.UTF-8"\n\texport LANG="zh_CN.UTF-8"\n\texport LC_MESSAGES="zh_CN.UTF-8"' "$CUPSD_INIT"
     fi
-    locale-gen 2>/dev/null
-    echo " ✅ locale 已生成"
-else
-    echo " ⚠️ locale-gen 不可用，跳过"
 fi
+
+echo " ✅ 中文环境变量已配置"
 
 # ============================================
 # 第二步：部署 CUPS 中文翻译文件（后端汉化）
@@ -217,7 +261,14 @@ if [ -f "$CUPS_MO" ]; then
     cp "$CUPS_MO" /usr/share/locale/zh_CN/LC_MESSAGES/cups.mo
     chmod 644 /usr/share/locale/zh_CN/LC_MESSAGES/cups.mo
     rm -f "$CUPS_MO"
-    echo " ✅ CUPS 中文翻译文件已部署"
+
+    # 验证 cupsd 是否链接了 libintl
+    if ldd /usr/sbin/cupsd 2>/dev/null | grep -q "libintl"; then
+        echo " ✅ CUPS 中文翻译文件已部署（cupsd 已链接 libintl）"
+    else
+        echo " ⚠️ CUPS 中文翻译文件已部署，但 cupsd 未链接 libintl"
+        echo " ⚠️ 后端消息可能仍为英文，需检查编译配置"
+    fi
 else
     echo " ⚠️ 未找到 cups.mo，后端消息将保持英文"
 fi
@@ -231,7 +282,7 @@ echo "[3/5] 部署 CUPS 前端汉化模板..."
 CUPS_ZIP="/etc/cups-zh/CUPS-zh.zip"
 if [ -f "$CUPS_ZIP" ] && command -v unzip >/dev/null 2>&1; then
     unzip -o "$CUPS_ZIP" -d /tmp/cups-zh >/dev/null 2>&1
-    
+
     # 兼容两种 zip 内部路径结构
     TMPL_DIR=$(find /tmp/cups-zh -type d -name "templates" -path "*/cups/*" 2>/dev/null | head -1)
     DOC_DIR=$(find /tmp/cups-zh -type d -name "doc-root" -path "*/cups/*" 2>/dev/null | head -1)
